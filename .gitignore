@@ -15,7 +15,7 @@ dist/
 
 # Old comparison template & large raw GIS data excluded from GitHub repo
 frontend/
-data/
+/data/
 *.tif
 *.tiff
 *.gpkg
