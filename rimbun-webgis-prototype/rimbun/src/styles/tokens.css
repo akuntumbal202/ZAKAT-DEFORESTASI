@@ -1,0 +1,94 @@
+/* ───────────────────────────────────────────────────────────────
+   Design tokens — Rimbun
+   Forest greens + warm paper neutrals + earthy accents (clay, ochre).
+   Two type families: Fraunces (display) + Geist (UI, body, data).
+   ─────────────────────────────────────────────────────────────── */
+:root {
+  /* Forest */
+  --c-forest-950: #0d1c14;
+  --c-forest-900: #14271c;
+  --c-forest-800: #1a3324;
+  --c-forest-700: #20412e;
+  --c-forest-600: #285539;
+  --c-forest-500: #2f6b47;
+  --c-forest-400: #4f8a62;
+  --c-moss-300: #a6c49a;
+  --c-moss-200: #c9dcc0;
+  --c-sage-100: #e5ece0;
+  --c-sage-50: #f0f4ec;
+
+  /* Earth accents */
+  --c-clay-600: #9c4f26;
+  --c-clay-500: #b8642f;
+  --c-clay-100: #f5e4d8;
+  --c-ochre-500: #c98f2e;
+  --c-ochre-400: #d9a441;
+  --c-ochre-100: #f6ead0;
+
+  /* Neutrals (warm) */
+  --c-paper: #f6f3ec;
+  --c-paper-2: #efebe1;
+  --c-surface: #fffdf9;
+  --c-line: #e2ddd1;
+  --c-line-strong: #cfc8b8;
+  --c-ink-900: #16201a;
+  --c-ink-700: #33413a;
+  --c-ink-600: #4a5850;
+  --c-ink-500: #66736b;
+  --c-ink-400: #87918a;
+
+  --c-danger: #b23a2a;
+  --c-danger-bg: #f8e3df;
+
+  /* Semantic */
+  --bg: var(--c-paper);
+  --fg: var(--c-ink-900);
+  --muted: var(--c-ink-500);
+  --primary: var(--c-forest-600);
+  --primary-hover: var(--c-forest-700);
+  --focus: #3f7cff;
+
+  /* Type */
+  --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-base: 0.9375rem;
+  --fs-md: 1.0625rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.625rem;
+  --fs-2xl: clamp(1.75rem, 1.2rem + 1.8vw, 2.5rem);
+  --fs-3xl: clamp(2.25rem, 1.4rem + 3vw, 3.5rem);
+  --fs-hero: clamp(2.6rem, 1.4rem + 4.8vw, 5.25rem);
+
+  /* Spacing (4px base) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+  --s-20: 80px;
+  --s-24: 96px;
+  --section: clamp(56px, 4vw + 32px, 112px);
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --r-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(20, 39, 28, 0.06);
+  --shadow-md: 0 1px 2px rgba(20, 39, 28, 0.05), 0 8px 24px -8px rgba(20, 39, 28, 0.14);
+  --shadow-lg: 0 2px 6px rgba(20, 39, 28, 0.06), 0 24px 60px -16px rgba(20, 39, 28, 0.28);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --nav-h: 68px;
+  --container: 1200px;
+  --container-wide: 1440px;
+}

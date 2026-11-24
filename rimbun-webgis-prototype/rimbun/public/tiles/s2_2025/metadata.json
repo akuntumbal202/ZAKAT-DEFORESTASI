@@ -1,0 +1,27 @@
+{
+  "source": "COPERNICUS/S2_SR_HARMONIZED + GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED",
+  "clipped_to": "GADM ADM_3 Kecamatan Loa Kulu (batas_loakulu_kecamatan.geojson)",
+  "date_range": "2025-01-01 to 2025-12-31",
+  "cs_cdf_threshold": 0.6,
+  "bands": [
+    "B4",
+    "B3",
+    "B2"
+  ],
+  "vis": {
+    "min": 0.02,
+    "max": 0.25,
+    "gamma": 1.2
+  },
+  "zoom_min": 10,
+  "zoom_max": 14,
+  "bbox": [
+    116.5309,
+    -0.88239,
+    117.06873,
+    -0.41596
+  ],
+  "tile_count": 498,
+  "total_size_mb": 3.58,
+  "format": "webp-rgba"
+}

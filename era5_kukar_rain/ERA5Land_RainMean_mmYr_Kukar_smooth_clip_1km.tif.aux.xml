@@ -1,0 +1,12 @@
+<PAMDataset>
+  <PAMRasterBand band="1">
+    <Description>rain_mm_yr</Description>
+    <Metadata>
+      <MDI key="STATISTICS_MINIMUM">2329.5390625</MDI>
+      <MDI key="STATISTICS_MAXIMUM">4128.4907226562</MDI>
+      <MDI key="STATISTICS_MEAN">2971.1237632483</MDI>
+      <MDI key="STATISTICS_STDDEV">327.20739892234</MDI>
+      <MDI key="STATISTICS_VALID_PERCENT">36.74</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>

@@ -1,0 +1,38 @@
+# Dependencies & build output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.vite/
+
+# Local environment secrets (NEVER commit real keys!)
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Old comparison template & large raw GIS data excluded from GitHub repo
+frontend/
+data/
+*.tif
+*.tiff
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.qgz
+*.qgs
+
+# Local launcher scripts & Python/Jupyter caches
+Buka-Kanopi.bat
+Buka-Rimbun.bat
+__pycache__/
+**/__pycache__/
+.ipynb_checkpoints/
+*.pyc
+.DS_Store
+Thumbs.db
