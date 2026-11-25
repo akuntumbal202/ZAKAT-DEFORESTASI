@@ -54,7 +54,7 @@ function NoDonations() {
     <EmptyState
       icon="sprout"
       title="Belum ada donasi"
-      body="Pilih satu lokasi restorasi untuk memulai. Riwayat dan estimasi dampakmu akan muncul di sini."
+      body="Pilih satu lokasi restorasi untuk memulai. Riwayat dan estimasi dampak Anda akan muncul di sini."
       action={
         <Button to={to.programs()} icon="sprout">
           Pilih program
@@ -67,7 +67,7 @@ function NoDonations() {
 /* ─── Overview ─────────────────────────────────────────── */
 
 export function DashboardOverviewPage() {
-  const { state, myDonations, getProject, savedIds } = useStore();
+  const { state, isSandboxDemo, isBackendConfigured, myDonations, getProject, savedIds } = useStore();
   const { totals } = useMyImpact(10);
   const total = myDonations.reduce((s, d) => s + d.amount, 0);
   const programs = new Set(myDonations.map((d) => d.project_id)).size;
@@ -78,7 +78,7 @@ export function DashboardOverviewPage() {
   return (
     <DashboardLayout
       title={`Halo, ${firstName}.`}
-      lead="Ringkasan kontribusi dan estimasi dampakmu."
+      lead="Ringkasan kontribusi dan estimasi dampak Anda."
       actions={
         <Button to={to.programs()} icon="sprout">
           Donasi lagi
@@ -134,7 +134,11 @@ export function DashboardOverviewPage() {
       )}
 
       <Callout tone="sim" title="Catatan simulasi">
-        Seluruh donasi di dashboard ini adalah transaksi simulasi yang disimpan di peramban kamu. Estimasi dampak bersifat ilustratif.
+        {isSandboxDemo
+          ? 'Anda sedang berada di Mode Sandbox Demo. Seluruh transaksi di sesi ini hanya bersifat sementara dan otomatis ter-reset saat keluar.'
+          : isBackendConfigured
+            ? 'Riwayat donasi simulasi ini tersimpan pada akun Anda di database prototipe (tanpa transaksi uang asli). Estimasi dampak karbon bersifat ilustratif.'
+            : 'Seluruh donasi di dashboard ini adalah transaksi simulasi lokal. Estimasi dampak karbon bersifat ilustratif.'}
       </Callout>
     </DashboardLayout>
   );
@@ -251,7 +255,7 @@ export function DashboardImpactPage() {
   return (
     <DashboardLayout
       title="Dampak saya"
-      lead="Akumulasi estimasi dampak ekologis dari seluruh kontribusimu."
+      lead="Akumulasi estimasi dampak ekologis dari seluruh kontribusi Anda."
       actions={<Segmented label="Periode proyeksi" value={period} onChange={(v) => setPeriod(v as ProjectionPeriod)} options={PROJECTION_PERIODS.map((p) => ({ value: p, label: `${p} tahun` }))} />}
     >
       {myDonations.length === 0 ? (
@@ -324,7 +328,7 @@ export function DashboardSavedPage() {
   const { savedIds, getProject } = useStore();
   const saved = savedIds.map((id) => getProject(id)).filter((p): p is ProjectView => !!p);
   return (
-    <DashboardLayout title="Program tersimpan" lead="Akses cepat ke lokasi yang kamu tandai. Ketuk ikon hati untuk menghapus.">
+    <DashboardLayout title="Program tersimpan" lead="Akses cepat ke lokasi yang Anda tandai. Ketuk ikon hati untuk menghapus.">
       {saved.length === 0 ? (
         <EmptyState
           icon="heart"
@@ -435,19 +439,25 @@ export function DashboardProfilePage() {
             </Button>
           </div>
           <div className="panel panel--pad">
-            <h2 className="h-sub">Data simulasi</h2>
-            <p className="small muted">Hapus semua akun, donasi, dan favorit simulasi dari peramban ini.</p>
+            <h2 className="h-sub">{isSandboxDemo ? 'Sesi Sandbox Demo' : isBackendConfigured ? 'Sinkronisasi data' : 'Data simulasi lokal'}</h2>
+            <p className="small muted">
+              {isSandboxDemo
+                ? 'Kembalikan seluruh perubahan di sesi sandbox ke data asli server.'
+                : isBackendConfigured
+                  ? 'Muat ulang daftar program, riwayat donasi, dan bookmark terbaru dari server.'
+                  : 'Hapus seluruh data simulasi lokal dari peramban ini.'}
+            </p>
             <Button
-              variant="danger"
+              variant={isBackendConfigured && !isSandboxDemo ? 'secondary' : 'danger'}
               icon="refresh"
               block
               className="mt-16"
               onClick={() => {
                 resetDemo();
-                navigate(to.home());
+                if (!isBackendConfigured || isSandboxDemo) navigate(to.home());
               }}
             >
-              Reset data simulasi
+              {isSandboxDemo ? 'Reset sesi sandbox' : isBackendConfigured ? 'Sinkronkan ulang data' : 'Reset data lokal'}
             </Button>
           </div>
         </div>

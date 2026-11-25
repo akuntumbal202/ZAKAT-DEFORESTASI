@@ -31,7 +31,7 @@ export function useGatedActions() {
       if (!state.user) {
         requireAuth(
           { kind: 'donate', project_id: projectId, amount, return_to: route.path || to.program(projectId) },
-          'Masuk dulu untuk melanjutkan donasi. Pilihan programmu disimpan.',
+          'Silakan masuk terlebih dahulu untuk melanjutkan simulasi donasi. Pilihan program Anda sudah disimpan.',
         );
         return;
       }

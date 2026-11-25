@@ -234,17 +234,17 @@ export function ForgotPasswordPage() {
     setSent(true);
   };
   return (
-    <AuthLayout title="Lupa kata sandi" lead="Masukkan email akunmu untuk mendapatkan tautan pengaturan ulang kata sandi.">
+    <AuthLayout title="Lupa kata sandi" lead="Masukkan email akun Anda untuk mendapatkan tautan pengaturan ulang kata sandi.">
       {sent ? (
         <div className="auth__sent">
           <span className="empty__icon">
             <Icon name="mail" size={22} />
           </span>
-          <h2>{isBackendConfigured ? 'Periksa email kamu' : 'Cek email kamu (simulasi)'}</h2>
+          <h2>{isBackendConfigured ? 'Periksa email Anda' : 'Periksa email Anda (simulasi)'}</h2>
           <p className="muted">
             {isBackendConfigured
-              ? `Jika ${email} terdaftar, tautan reset kata sandi telah dikirim oleh Supabase Auth.`
-              : `Jika ${email} terdaftar, tautan pengaturan ulang akan dikirim. Di mode lokal ini belum ada email yang benar-benar terkirim.`}
+              ? `Jika ${email} terdaftar, tautan pengaturan ulang kata sandi telah dikirim oleh sistem autentikasi.`
+              : `Jika ${email} terdaftar, tautan pengaturan ulang akan dikirim. Pada mode lokal ini belum ada email yang benar-benar terkirim.`}
           </p>
           <Button to={to.login()} variant="secondary" icon="arrow-left">
             Kembali ke halaman masuk
@@ -257,7 +257,7 @@ export function ForgotPasswordPage() {
             Kirim tautan
           </Button>
           <p className="auth__switch">
-            Ingat kata sandimu? <Link to={to.login()}>Masuk</Link>
+            Sudah ingat kata sandi Anda? <Link to={to.login()}>Masuk</Link>
           </p>
         </form>
       )}

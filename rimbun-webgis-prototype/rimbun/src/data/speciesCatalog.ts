@@ -11,9 +11,9 @@ import type { Species } from '../types';
  * pada versi ini berlabel PLACEHOLDER ilustratif.
  */
 export const SPECIES_CATALOG_META = {
-  status: 'placeholder' as const,
-  version: '0.1-loakulu-placeholder',
-  note: 'Kriteria kesesuaian lahan di bawah ini adalah placeholder ilustratif untuk menguji auto-suggest. Ganti dengan daftar spesies & parameter silvikultur final dari tim tanaman.',
+  status: 'referensi awal' as const,
+  version: '0.1-loakulu-awal',
+  note: 'Daftar spesies dan kriteria kesesuaian lahan berikut merupakan referensi awal untuk menguji alur kurasi, dan akan diperbarui sesuai kajian silvikultur tim tanaman.',
 };
 
 export interface SpeciesSuitabilityRule {
@@ -41,7 +41,7 @@ export interface SpeciesCatalogItem extends Species {
 export const SPECIES_CATALOG: SpeciesCatalogItem[] = [
   {
     id: 'sengon',
-    local_name: 'Sengon (Placeholder)',
+    local_name: 'Sengon',
     scientific_name: 'Falcataria falcata',
     growth_form: 'pohon',
     description:
@@ -60,7 +60,7 @@ export const SPECIES_CATALOG: SpeciesCatalogItem[] = [
   },
   {
     id: 'jabon',
-    local_name: 'Jabon Merah / Putih (Placeholder)',
+    local_name: 'Jabon Merah / Putih',
     scientific_name: 'Neolamarckia cadamba',
     growth_form: 'pohon',
     description:
@@ -79,7 +79,7 @@ export const SPECIES_CATALOG: SpeciesCatalogItem[] = [
   },
   {
     id: 'sungkai',
-    local_name: 'Sungkai (Placeholder)',
+    local_name: 'Sungkai',
     scientific_name: 'Peronema canescens',
     growth_form: 'pohon',
     description:
@@ -98,7 +98,7 @@ export const SPECIES_CATALOG: SpeciesCatalogItem[] = [
   },
   {
     id: 'trembesi',
-    local_name: 'Trembesi (Placeholder)',
+    local_name: 'Trembesi',
     scientific_name: 'Samanea saman',
     growth_form: 'pohon',
     description:
@@ -117,7 +117,7 @@ export const SPECIES_CATALOG: SpeciesCatalogItem[] = [
   },
   {
     id: 'meranti-merah',
-    local_name: 'Meranti Merah (Placeholder)',
+    local_name: 'Meranti Merah',
     scientific_name: 'Shorea leprosula',
     growth_form: 'pohon',
     description:
@@ -136,7 +136,7 @@ export const SPECIES_CATALOG: SpeciesCatalogItem[] = [
   },
   {
     id: 'ulin',
-    local_name: 'Ulin / Kayu Besi (Placeholder)',
+    local_name: 'Ulin / Kayu Besi',
     scientific_name: 'Eusideroxylon zwageri',
     growth_form: 'pohon',
     description:
@@ -155,7 +155,7 @@ export const SPECIES_CATALOG: SpeciesCatalogItem[] = [
   },
   {
     id: 'gaharu',
-    local_name: 'Gaharu (Placeholder)',
+    local_name: 'Gaharu',
     scientific_name: 'Aquilaria malaccensis',
     growth_form: 'pohon',
     description:
@@ -174,7 +174,7 @@ export const SPECIES_CATALOG: SpeciesCatalogItem[] = [
   },
   {
     id: 'durian',
-    local_name: 'Durian / Lai Lokal (Placeholder)',
+    local_name: 'Durian / Lai Lokal',
     scientific_name: 'Durio zibethinus',
     growth_form: 'pohon buah',
     description:
@@ -193,7 +193,7 @@ export const SPECIES_CATALOG: SpeciesCatalogItem[] = [
   },
   {
     id: 'petai',
-    local_name: 'Petai (Placeholder)',
+    local_name: 'Petai',
     scientific_name: 'Parkia speciosa',
     growth_form: 'pohon buah',
     description:
@@ -212,7 +212,7 @@ export const SPECIES_CATALOG: SpeciesCatalogItem[] = [
   },
   {
     id: 'aren',
-    local_name: 'Aren Konservasi (Placeholder)',
+    local_name: 'Aren Konservasi',
     scientific_name: 'Arenga pinnata',
     growth_form: 'palma',
     description:

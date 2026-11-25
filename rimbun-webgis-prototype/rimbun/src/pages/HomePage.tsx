@@ -53,10 +53,10 @@ export function HomePage() {
               <Icon name="polygon" size={14} /> Kutai Kartanegara · Wilayah Fokus Kecamatan Loa Kulu
             </span>
             <h1 className="hero__title">
-              Hutan yang hilang punya koordinat. <em>Pulihkan dari titiknya.</em>
+              Pemetaan deforestasi dan pemulihan hutan <em>Kecamatan Loa Kulu.</em>
             </h1>
             <p className="hero__lead">
-              Jelajahi 163 poligon deforestasi teranalisis di Kecamatan Loa Kulu (5.783,7 ha), pilih lokasi program restorasi yang telah dikurasi, dan pantau dampak ekologis donasi Anda secara transparan.
+              Telusuri 163 poligon kehilangan tutupan pohon di Kecamatan Loa Kulu (5.783,7 ha), tinjau kondisi fisik tiap lokasi, dan simulasikan dukungan Anda pada program rehabilitasi yang telah dikurasi.
             </p>
             <div className="hero__ctas">
               <Button size="lg" variant="light" to={to.explore()} icon="map">
@@ -115,42 +115,42 @@ export function HomePage() {
             <StatisticsCard variant="strip" label="Deforestasi Loa Kulu" value={<CountUp value={Math.round(stats.totalDeforestedArea)} />} unit="ha" />
             <StatisticsCard variant="strip" label="Program terkurasi" value={<CountUp value={stats.count} />} unit="lokasi" />
             <StatisticsCard variant="strip" label="Dana terkumpul" value={formatIDRShort(stats.totalCollected)} unit="simulasi" />
-            <StatisticsCard variant="strip" label="Est. serapan CO₂ · 10 th" value={co2.value} unit={co2.unit} />
+            <StatisticsCard variant="strip" label="Potensi serapan CO₂ · 10 th" value={co2.value} unit={co2.unit} />
           </div>
           <div className="container hero__stats-note">
             <Illustrative />
-            <span>Data spasial poligon berasal dari geoprocessing raster riil Kecamatan Loa Kulu; data pendanaan adalah simulasi prototipe.</span>
+            <span>Data poligon dan parameter fisik berasal dari analisis citra satelit aktual Loa Kulu; angka pendanaan dan potensi karbon (asumsi 100% target terdanai) bersifat simulasi.</span>
           </div>
         </div>
       </section>
 
-      {/* ── Masalahnya (kept & tailored to Loa Kulu) ─────────── */}
+      {/* ── Mengapa pendekatan berbasis poligon ───────────────── */}
       <section className="problem section">
         <Reveal className="container problem__grid">
           <div>
             <span className="eyebrow">Mengapa pendekatan berbasis poligon</span>
-            <h2 className="problem__title">Donasi lingkungan butuh lokasi pasti, kondisi fisik jelas, dan hitungan dampak jujur.</h2>
+            <h2 className="problem__title">Rehabilitasi hutan membutuhkan lokasi yang jelas, data fisik terukur, dan perhitungan dampak yang terbuka.</h2>
           </div>
           <ol className="problem__list">
             <li>
               <span className="problem__n num">01</span>
               <div>
-                <h3>Setiap bukaan hutan punya karakteristik berbeda</h3>
-                <p>Lahan bekas tambang bersudut lereng terjal membutuhkan spesies pionir berbeda dibanding semak dataran rendah bertanah Padsolik.</p>
+                <h3>Setiap lokasi memiliki kondisi fisik yang berbeda</h3>
+                <p>Lahan terbuka bekas bukaan/tambang, semak pada lereng miring, dan zona tanah organosol lembap memerlukan jenis tanaman serta perlakuan penanaman yang berbeda.</p>
               </div>
             </li>
             <li>
               <span className="problem__n num">02</span>
               <div>
-                <h3>Publik berhak membandingkan seluruh peta</h3>
-                <p>Peta WebGIS kami menampilkan program aktif sekaligus 163 poligon deforestasi mentah agar masyarakat ikut mengawal prioritas rehabilitasi.</p>
+                <h3>Akses terbuka untuk membandingkan seluruh lokasi</h3>
+                <p>Peta interaktif menampilkan program aktif bersamaan dengan seluruh 163 poligon deforestasi agar masyarakat dapat meninjau dan mengusulkan prioritas rehabilitasi.</p>
               </div>
             </li>
             <li>
               <span className="problem__n num">03</span>
               <div>
-                <h3>Estimasi karbon disajikan dengan rentang wajar</h3>
-                <p>Asumsi biaya per bibit dan tingkat hidup disesuaikan per program serta dipisahkan tegas antara model ilustratif dan data lapangan.</p>
+                <h3>Estimasi dampak disajikan bersama batasannya</h3>
+                <p>Biaya per bibit, tingkat kelulushidupan, dan proyeksi serapan karbon ditampilkan secara terbuka serta dipisahkan tegas antara simulasi model dan data lapangan.</p>
               </div>
             </li>
           </ol>
@@ -238,9 +238,9 @@ export function HomePage() {
         <Reveal className="container impact-teaser__grid">
           <div>
             <span className="eyebrow">Kalkulator dampak</span>
-            <h2 className="impact-teaser__title">Hitung dampak ekologis kontribusimu dalam hitungan detik.</h2>
+            <h2 className="impact-teaser__title">Simulasikan proyeksi dampak dari kontribusi Anda.</h2>
             <p className="impact-teaser__lead">
-              Simulasikan nominal donasi maupun target serapan CO₂ secara interaktif, lengkap dengan kurva akumulasi CO₂ &amp; produksi O₂ serta perbandingan 3, 10, dan 15 tahun.
+              Hitung estimasi jumlah bibit, akumulasi serapan CO₂, dan produksi O₂ berdasarkan nominal donasi atau target serapan karbon pada rentang 3, 10, dan 15 tahun.
             </p>
             <Button to={to.calculator()} variant="primary" icon="calculator">
               Buka kalkulator lengkap
@@ -301,9 +301,9 @@ export function HomePage() {
         <Reveal className="container trust__grid">
           <div>
             <span className="eyebrow">Transparansi &amp; ZISWAF</span>
-            <h2 className="trust__title">Dikembangkan independen, disalurkan amanah bersama mitra ZISWAF.</h2>
+            <h2 className="trust__title">Pengelolaan dana yang terbuka dan terpisah per program.</h2>
             <p className="trust__lead">
-              Setiap program memisahkan target anggaran, dana terkumpul, realisasi penggunaan lapangan, dan sisa dana agar akuntabilitas tetap terjaga.
+              Platform ini dikembangkan secara independen dan dirancang untuk bermitra dengan lembaga ZISWAF. Setiap program memisahkan target anggaran, dana terkumpul, penggunaan lapangan, dan sisa dana secara terbuka.
             </p>
             <div className="trust__actions">
               <Button to={to.transparency()} variant="secondary" icon="shield">
@@ -342,15 +342,15 @@ export function HomePage() {
       <section className="closing">
         <div className="container closing__inner">
           <div>
-            <h2>Mulai dari peta Kecamatan Loa Kulu.</h2>
-            <p className="muted-light">Jelajahi program aktif, atau masuk sebagai Admin Kurator untuk mengkurasi poligon baru.</p>
+            <h2>Mulai jelajahi data dan program rehabilitasi Loa Kulu.</h2>
+            <p className="muted-light">Tinjau persebaran deforestasi di peta interaktif atau pilih langsung program rehabilitasi yang membutuhkan dukungan.</p>
           </div>
           <div className="closing__ctas">
             <Button size="lg" variant="light" to={to.explore()} icon="map">
-              Explore Map
+              Buka Peta Interaktif
             </Button>
-            <Button size="lg" variant="outline-light" to={to.login()} icon="shield">
-              Portal Admin / Donatur
+            <Button size="lg" variant="outline-light" to={to.programs()} iconRight="arrow-right">
+              Lihat Semua Program
             </Button>
           </div>
         </div>

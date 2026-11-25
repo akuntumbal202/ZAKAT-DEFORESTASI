@@ -25,7 +25,7 @@ import { SITE } from './config/site';
 
 const TITLES: Record<string, string> = {
   home: SITE.tagline,
-  explore: 'Explore Map',
+  explore: 'Peta Interaktif',
   programs: 'Program restorasi',
   program: 'Detail program',
   calculator: 'Kalkulator dampak',

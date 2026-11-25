@@ -7,7 +7,7 @@ import { Icon } from '../components/ui/Icon';
 import { Button } from '../components/ui/Button';
 
 const NAV: { label: string; to: string; match: RouteName[] }[] = [
-  { label: 'Explore Map', to: to.explore(), match: ['explore'] },
+  { label: 'Peta Interaktif', to: to.explore(), match: ['explore'] },
   { label: 'Program', to: to.programs(), match: ['programs', 'program'] },
   { label: 'Kalkulator Dampak', to: to.calculator(), match: ['calculator'] },
   { label: 'Transparansi', to: to.transparency(), match: ['transparency'] },
@@ -213,7 +213,7 @@ export function Navbar({ overlay, wide }: { overlay?: boolean; wide?: boolean })
 }
 
 export function Footer() {
-  const { resetDemo } = useStore();
+  const { isSandboxDemo, isBackendConfigured, resetDemo } = useStore();
   return (
     <footer className="footer">
       <div className="container footer__grid">
@@ -221,13 +221,13 @@ export function Footer() {
           <Logo inverse />
           <p>{SITE.taglineId}</p>
           <p className="footer__phase">
-            <Icon name="info" size={14} /> {SITE.phase}. Data spasial poligon Loa Kulu aktual; angka pendanaan &amp; kesesuaian spesies bersifat simulasi.
+            <Icon name="info" size={14} /> {SITE.phase}. Data spasial poligon Loa Kulu aktual; angka pendanaan dan rekomendasi spesies awal bersifat simulasi.
           </p>
         </div>
         <div>
           <h3>Jelajahi</h3>
           <ul>
-            <li><Link to={to.explore()}>Explore Map Loa Kulu</Link></li>
+            <li><Link to={to.explore()}>Peta Interaktif Loa Kulu</Link></li>
             <li><Link to={to.programs()}>Program restorasi</Link></li>
             <li><Link to={to.calculator()}>Kalkulator dampak</Link></li>
           </ul>
@@ -236,25 +236,27 @@ export function Footer() {
           <h3>Akuntabilitas</h3>
           <ul>
             <li><Link to={to.transparency()}>Transparansi &amp; laporan</Link></li>
-            <li><Link to={to.about()}>Tentang &amp; kemitraan ZISWAF</Link></li>
-            <li><Link to={to.about('metodologi')}>Metodologi dampak</Link></li>
+            <li><Link to={to.about('ziswaf')}>Tentang &amp; skema ZISWAF</Link></li>
+            <li><Link to={to.about('metodologi')}>Metodologi GIS &amp; karbon</Link></li>
           </ul>
         </div>
         <div>
-          <h3>Akun &amp; Kurasi</h3>
+          <h3>Akun</h3>
           <ul>
-            <li><Link to={to.login()}>Masuk (Donatur / Admin)</Link></li>
-            <li><Link to={to.register()}>Daftar donatur</Link></li>
-            <li>
-              <button type="button" className="linklike" onClick={resetDemo}>
-                Reset data simulasi
-              </button>
-            </li>
+            <li><Link to={to.login()}>Masuk</Link></li>
+            <li><Link to={to.register()}>Daftar akun donatur</Link></li>
+            {(isSandboxDemo || !isBackendConfigured) && (
+              <li>
+                <button type="button" className="linklike" onClick={resetDemo}>
+                  {isSandboxDemo ? 'Reset sesi sandbox' : 'Reset data lokal'}
+                </button>
+              </li>
+            )}
           </ul>
         </div>
       </div>
       <div className="container footer__bottom">
-        <span>© 2026 {SITE.name} · Fokus Prototipe: {SITE.regionFocus}</span>
+        <span>© 2026 {SITE.name} · Wilayah Kajian: {SITE.regionFocus}</span>
         <span>{SITE.partnerLabel}</span>
       </div>
     </footer>

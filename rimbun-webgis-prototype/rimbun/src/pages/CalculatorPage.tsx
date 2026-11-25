@@ -7,15 +7,15 @@ export function CalculatorPage() {
   return (
     <PublicLayout>
       <PageHeader
-        eyebrow="Environmental impact calculator"
-        title="Dari rupiah ke dampak ekologis."
-        lead="Hitung estimasi bibit, serapan CO₂, dan produksi O₂ dari sebuah donasi, atau sebaliknya: berapa dana yang dibutuhkan untuk target serapan tertentu. Semua angka adalah simulasi dengan asumsi yang terbuka."
+        eyebrow="Kalkulator dampak lingkungan"
+        title="Estimasi dampak ekologis dari kontribusi Anda."
+        lead="Hitung perkiraan jumlah bibit, serapan CO₂, dan produksi O₂ dari nominal donasi tertentu, atau perkirakan kebutuhan dana untuk mencapai target serapan karbon. Seluruh asumsi perhitungan ditampilkan secara terbuka."
         aside={
           <PageHeaderVisual
             imageUrl="/images/site-agroforestry.jpg"
             alt="Lanskap agroforestri dan serapan karbon Loa Kulu"
             badge="Proyeksi 3 · 10 · 15 Tahun"
-            caption="Kurva pertumbuhan sigmoidal CO₂ terserap & O₂ dihasilkan"
+            caption="Model pertumbuhan logistik sigmoidal untuk estimasi CO₂ & O₂"
           />
         }
       />

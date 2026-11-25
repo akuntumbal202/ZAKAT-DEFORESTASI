@@ -4,9 +4,9 @@
 export const SITE = {
   name: 'Rimbun',
   regionFocus: 'Kecamatan Loa Kulu, Kutai Kartanegara',
-  tagline: 'Explore Deforestation. Fund Restoration. Measure Environmental Impact.',
-  taglineId: 'Jelajahi deforestasi Loa Kulu. Danai restorasi. Ukur dampaknya.',
-  partnerLabel: 'Mitra ZISWAF (dalam penjajakan)',
+  tagline: 'Pemetaan Deforestasi, Program Rehabilitasi, dan Estimasi Dampak Lingkungan',
+  taglineId: 'Platform WebGIS pemetaan deforestasi, pendanaan rehabilitasi hutan, dan estimasi dampak ekologis.',
+  partnerLabel: 'Rencana Kemitraan Lembaga ZISWAF',
   storageKey: 'rimbun.loakulu.v1',
   phase: 'Prototipe Wilayah Loa Kulu · data spasial aktual & simulasi pendanaan',
 } as const;

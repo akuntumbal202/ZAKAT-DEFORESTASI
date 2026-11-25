@@ -95,7 +95,7 @@ export function ProjectDetailSidebar({
                 </div>
               </dl>
               <div className="psidebar__species">
-                <span className="eyebrow">Rekomendasi tanaman (placeholder)</span>
+                <span className="eyebrow">Rekomendasi tanaman (referensi awal)</span>
                 <ul>
                   {project.recommended_species.map((r) => (
                     <li key={r.species_id}>

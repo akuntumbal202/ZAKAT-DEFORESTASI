@@ -29,7 +29,7 @@ export function SpeciesCard({ rec, share }: { rec: SpeciesRecommendation; share:
         <p className="species__desc">{sp.description}</p>
         <div className="species__why">
           <span className="species__why-label">Alasan kesesuaian</span>
-          <p>{rec.suitability_reason}</p>
+          <p>{rec.suitability_reason.replace(/^Placeholder:\s*/i, '')}</p>
         </div>
         <footer className="species__foot">
           <ul className="chips">

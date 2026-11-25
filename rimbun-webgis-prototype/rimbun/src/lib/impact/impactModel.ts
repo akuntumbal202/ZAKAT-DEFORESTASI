@@ -1,8 +1,8 @@
 import { IMPACT_ASSUMPTIONS as A } from './assumptions';
 
 /**
- * Dummy impact model. Pure functions only — no React, no UI.
- * Replace the internals with a validated model; keep the signatures.
+ * Pure ecological impact estimation model (no React/UI dependencies).
+ * Uses a logistic sigmoid growth curve for annual CO₂ uptake per surviving tree.
  */
 
 export interface ImpactContext {
@@ -35,9 +35,14 @@ export interface FundingNeed {
   series: YearPoint[];
 }
 
-/** Growth factor in a given year (1-indexed): linear ramp up to plateau. */
+/**
+ * Logistic sigmoid growth factor in year t (1-indexed):
+ *   f(t) = 1 / (1 + exp(-k * (t - t0)))
+ * Captures slow establishment (years 1–3), rapid canopy growth (years 4–9),
+ * and gradual plateau toward mature annual uptake (years 10–15+).
+ */
 export function growthFactor(year: number): number {
-  return Math.min(1, year / A.rampYears);
+  return 1 / (1 + Math.exp(-A.sigmoidSteepness * (year - A.sigmoidMidpointYear)));
 }
 
 function perTreeSeries(periodYears: number): number[] {

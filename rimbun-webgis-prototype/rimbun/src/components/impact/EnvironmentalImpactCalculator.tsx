@@ -179,9 +179,9 @@ export function EnvironmentalImpactCalculator({ fixedProject, initialAmount = 10
           </dl>
 
           <div className="calc__note-box">
-            <strong>Catatan model ekologi</strong>
+            <strong>Model pertumbuhan logistik sigmoidal</strong>
             <p>
-              Kurva tumbuh memakai pendekatan sigmoidal: tahun 1–3 masa adaptasi, tahun 4–10 pertumbuhan cepat, lalu mendekati serapan stabil pohon dewasa.
+              Laju serapan tahunan mengikuti kurva sigmoidal f(t) = 1 / (1 + e^(−0,65 × (t − 5,5))): fase adaptasi tahun 1–3, pertumbuhan cepat tahun 4–9, lalu mendekati laju stabil {IMPACT_ASSUMPTIONS.co2KgPerTreePerYearAtPlateau} kg CO₂/pohon/tahun pada tahun 10–15.
             </p>
           </div>
         </div>

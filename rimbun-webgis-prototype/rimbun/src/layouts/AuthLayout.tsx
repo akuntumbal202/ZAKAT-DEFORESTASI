@@ -14,8 +14,8 @@ export function AuthLayout({ title, lead, children }: { title: string; lead?: Re
       <div className="auth__aside">
         <Logo inverse />
         <div className="auth__quote">
-          <p>“Setiap bibit punya alamat. Setiap rupiah punya tujuan.”</p>
-          <span>Prinsip satu donasi untuk satu lokasi pilihan</span>
+          <p>“Setiap program rehabilitasi terhubung langsung ke lokasi poligon, kondisi fisik lahan, dan rincian biayanya.”</p>
+          <span>Prinsip transparansi alokasi berbasis lokasi</span>
         </div>
         <SiteVisual seed={44} category="hutan-lahan-kering" imageUrl="/images/site-corridor.jpg" label={false} ratio="4/3" className="auth__art" />
       </div>
@@ -30,7 +30,7 @@ export function AuthLayout({ title, lead, children }: { title: string; lead?: Re
             <div className="auth__intent" role="status">
               <Icon name="bookmark" size={16} />
               <span>
-                Setelah masuk, kamu akan lanjut {state.intent?.kind === 'donate' ? 'berdonasi' : 'menyimpan'} untuk <b>{pending.name}</b>
+                Setelah masuk, Anda akan melanjutkan proses {state.intent?.kind === 'donate' ? 'simulasi donasi' : 'penyimpanan program'} untuk <b>{pending.name}</b>
                 {state.intent?.amount ? ` (${formatIDRShort(state.intent.amount)})` : ''}.
               </span>
             </div>

@@ -59,13 +59,13 @@ export function ProgramsPage() {
     <PublicLayout>
       <PageHeader
         eyebrow="Program restorasi"
-        title="Pilih lokasi yang ingin kamu pulihkan."
-        lead="Setiap program terhubung 1:1 dengan poligon deforestasi aktual Kecamatan Loa Kulu beserta rekomendasi bibit dan rincian biaya. Donasimu dialokasikan penuh ke titik pilihanmu."
+        title="Pilih lokasi yang ingin Anda dukung."
+        lead="Setiap program terhubung langsung ke poligon deforestasi aktual Kecamatan Loa Kulu beserta rencana penanaman dan rincian biayanya. Kontribusi Anda dialokasikan penuh ke lokasi pilihan."
         aside={
           <PageHeaderVisual
             imageUrl="/images/site-corridor.jpg"
             alt="Koridor rehabilitasi hutan dan lereng Loa Kulu"
-            badge={`${projects.length} Program Terpublikasi`}
+            badge={`${projects.length} Program Aktif`}
             caption="Terkurasi dari 163 poligon deforestasi Kecamatan Loa Kulu"
           />
         }

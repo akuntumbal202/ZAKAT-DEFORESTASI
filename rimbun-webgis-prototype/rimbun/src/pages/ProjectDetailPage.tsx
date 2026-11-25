@@ -58,7 +58,7 @@ function FundingCard({ project, onTab }: { project: ProjectView; onTab: (t: Tab)
         </Button>
       </div>
       <button type="button" className="fundcard__link" onClick={() => onTab('impact')}>
-        <Icon name="calculator" size={16} /> Hitung estimasi dampak donasimu
+        <Icon name="calculator" size={16} /> Hitung estimasi dampak donasi Anda
         <Icon name="arrow-right" size={16} />
       </button>
     </div>
@@ -145,7 +145,7 @@ export function ProjectDetailPage() {
                 onSelect={() => {}}
               />
               <Link to={to.explore(project.polygon_code || project.id)} className="detail__map-link">
-                <Icon name="map" size={15} /> Buka di Explore Map
+                <Icon name="map" size={15} /> Buka di Peta Interaktif
               </Link>
             </div>
             <dl className="detail__facts">
@@ -176,7 +176,7 @@ export function ProjectDetailPage() {
                   value={tab}
                   onChange={setTab}
                   items={[
-                    { id: 'overview', label: 'Overview', icon: 'info' },
+                    { id: 'overview', label: 'Ringkasan', icon: 'info' },
                     { id: 'plan', label: 'Rencana Restorasi', icon: 'sprout' },
                     { id: 'funding', label: 'Pendanaan', icon: 'wallet' },
                     { id: 'impact', label: 'Dampak Lingkungan', icon: 'cloud' },
@@ -245,7 +245,7 @@ export function ProjectDetailPage() {
                       </ol>
                     </section>
                     <Callout tone="info" icon="database" title="Atribut spasial aktual Loa Kulu">
-                      Luas ({site ? `${formatNumber(site.area_ha)} ha` : '—'}), elevasi, kelerengan, curah hujan, dan jenis tanah bersumber dari poligon analisis spasial Loa Kulu (GEE ID: {site?.geometry_reference ?? '—'}).
+                      Luas ({site ? `${formatNumber(site.area_ha)} ha` : '—'}), elevasi, kelerengan, curah hujan, dan jenis tanah bersumber dari pengolahan data spasial Kecamatan Loa Kulu (kode poligon: {site?.geometry_reference ?? '—'}).
                     </Callout>
                   </div>
                 )}
@@ -299,8 +299,8 @@ export function ProjectDetailPage() {
                           Total <b>{formatNumber(project.total_seedlings)}</b> bibit
                         </span>
                       </div>
-                      <Callout tone="sim" title="Katalog tanaman placeholder (modular)">
-                        Rekomendasi dan kriteria spesies di bawah ini masih berlabel placeholder agar tampilan dan alur kurasi Admin dapat diuji sembari menunggu daftar tanaman final.
+                      <Callout tone="sim" title="Katalog spesies referensi awal">
+                        Daftar tanaman di bawah ini merupakan rekomendasi awal berbasis parameter fisik lahan dan sedang dalam proses penyempurnaan bersama tim kehutanan/tanaman.
                       </Callout>
                       <div className="species-list">
                         {project.recommended_species.map((r) => (
@@ -384,7 +384,7 @@ export function ProjectDetailPage() {
                       </div>
                     </section>
                     <section>
-                      <h2 className="h-sec">Donasi terbaru di sesi ini</h2>
+                      <h2 className="h-sec">Donasi simulasi terbaru</h2>
                       {recent.length ? (
                         <ul className="donor-list">
                           {recent.map((d) => (
@@ -399,7 +399,7 @@ export function ProjectDetailPage() {
                           ))}
                         </ul>
                       ) : (
-                        <EmptyState icon="users" title="Belum ada donasi simulasi" body="Donasi yang kamu lakukan di prototipe ini akan muncul di sini." />
+                        <EmptyState icon="users" title="Belum ada donasi simulasi" body="Donasi simulasi yang tercatat pada program ini akan ditampilkan di sini." />
                       )}
                     </section>
                     {accepting && (

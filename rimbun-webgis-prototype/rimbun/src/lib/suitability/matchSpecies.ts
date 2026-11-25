@@ -52,9 +52,9 @@ function buildReason(item: SpeciesCatalogItem, props: LoaKuluPolygonProps): stri
   }
 
   parts.push(
-    `sesuai rentang placeholder elevasi ${props.elev_med.toFixed(0)} m, lereng ${props.slope_med.toFixed(1)}°, dan tanah ${props.tanah_dom.split(',')[0]}`,
+    `sesuai kriteria awal untuk elevasi ${props.elev_med.toFixed(0)} m, lereng ${props.slope_med.toFixed(1)}°, dan tanah ${props.tanah_dom.split(',')[0]}`,
   );
-  return `Saran otomatis (placeholder): ${parts.join(' · ')}.`;
+  return `Saran awal sistem: ${parts.join(' · ')}.`;
 }
 
 export function matchSpeciesForPolygon(

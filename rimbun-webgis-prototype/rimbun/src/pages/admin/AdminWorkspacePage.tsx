@@ -115,7 +115,7 @@ export function AdminWorkspacePage() {
           <EmptyState
             icon="shield"
             title="Akses khusus Admin Kurator"
-            body="Masuk menggunakan Akun Demo Admin Kurator di halaman Masuk untuk mengkurasi poligon Loa Kulu dan mempublikasikan program."
+            body="Masuk menggunakan akun Admin resmi Anda atau coba Akun Demo Admin Kurator (Mode Sandbox) di halaman Masuk untuk mengkurasi poligon Loa Kulu."
             action={
               <Button to={to.login()} icon="arrow-right">
                 Ke halaman Masuk

@@ -55,7 +55,7 @@ export function DonationSuccessPage() {
           <span className="success__check">
             <Icon name="check" size={28} strokeWidth={2.5} />
           </span>
-          <h1>Terima kasih, kontribusimu tercatat.</h1>
+          <h1>Terima kasih, kontribusi Anda tercatat.</h1>
           <p>
             Donasi simulasi sebesar <b>{formatIDR(donation.amount)}</b> dialokasikan ke <b>{project.name}</b>. Progres pendanaan program sudah diperbarui.
           </p>

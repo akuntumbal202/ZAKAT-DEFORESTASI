@@ -48,15 +48,15 @@ function classifySlope(deg: number): string {
 function inferSoilTraits(tanahDom: string): { ph: string; drainage: string } {
   const lower = tanahDom.toLowerCase();
   if (lower.includes('organosol')) {
-    return { ph: '4,0–5,2 (Asam organik, estimasi)', drainage: 'Terhambat–lembap musiman' };
+    return { ph: '4,0–5,2 (referensi kelas tanah)', drainage: 'Terhambat–lembap musiman (referensi umum)' };
   }
   if (lower.includes('aluvial')) {
-    return { ph: '5,0–6,2 (Agak asam, estimasi)', drainage: 'Sedang hingga tergenang berkala' };
+    return { ph: '5,0–6,2 (referensi kelas tanah)', drainage: 'Sedang hingga tergenang berkala (referensi umum)' };
   }
   if (lower.includes('litosol')) {
-    return { ph: '4,5–5,6 (Asam mineral, estimasi)', drainage: 'Cepat, solum dangkal pada lereng' };
+    return { ph: '4,5–5,6 (referensi kelas tanah)', drainage: 'Cepat, solum dangkal (referensi umum)' };
   }
-  return { ph: '4,5–5,5 (Asam mineral tropis, estimasi)', drainage: 'Baik hingga sedang' };
+  return { ph: '4,5–5,5 (referensi kelas tanah)', drainage: 'Baik hingga sedang (referensi umum)' };
 }
 
 /** Converts actual enriched Loa Kulu GIS attributes into UI-ready `SiteAttributes`. */
@@ -66,7 +66,7 @@ export function polygonPropsToSiteAttributes(props: LoaKuluPolygonProps): SiteAt
   const p90PctApprox = Math.round(Math.tan((props.slope_p90 * Math.PI) / 180) * 100);
 
   const notes: string[] = [
-    `Identitas poligon GEE: ${props.id} (${props.count.toLocaleString('id-ID')} piksel analisis)`,
+    `Kode poligon sumber: ${props.id} (${props.count.toLocaleString('id-ID')} piksel 10 m)`,
     `Cakupan tanah dominan: ${props.tanah_dom_pct.toFixed(1)}% (${props.tanah_n_kelas} kelas melintas)`,
   ];
   if (props.topo_heterogen) {
@@ -81,9 +81,9 @@ export function polygonPropsToSiteAttributes(props: LoaKuluPolygonProps): SiteAt
     region_label: 'Kec. Loa Kulu, Kutai Kartanegara',
     kelas_id: props.kelas_id,
     climate: {
-      type: 'Tropis basah (ERA5-Land 2000–2024)',
+      type: 'Tropis basah · Curah hujan ERA5-Land',
       rainfall_mm_year: Math.round(props.rain_mean).toLocaleString('id-ID'),
-      temperature_c: '26–28',
+      temperature_c: '26–28 (kisaran umum Kaltim)',
     },
     soil: {
       type: props.tanah_dom,

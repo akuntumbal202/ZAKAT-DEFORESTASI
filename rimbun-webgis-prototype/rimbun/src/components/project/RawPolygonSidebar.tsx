@@ -99,7 +99,7 @@ export function RawPolygonSidebar({
 
           <dl className="kv">
             <div>
-              <dt>ID Fitur GEE</dt>
+              <dt>Kode Poligon Sumber</dt>
               <dd className="num">{polygon.id}</dd>
             </div>
             <div>
