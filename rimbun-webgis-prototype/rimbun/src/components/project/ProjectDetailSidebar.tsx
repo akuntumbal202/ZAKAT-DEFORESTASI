@@ -3,9 +3,9 @@ import type { ProjectView } from '../../types';
 import { cx, formatIDRShort, formatMass, formatNumber } from '../../lib/format';
 import { CATEGORY_LABEL, impactContextFor, isAcceptingDonations } from '../../services/projectService';
 import { donationToImpact } from '../../lib/impact/impactModel';
-import { SPECIES_BY_ID } from '../../data/mock/species';
 import { to } from '../../router/router';
 import { useGatedActions } from '../../store/actions';
+import { useStore } from '../../store/AppStore';
 import { Button } from '../ui/Button';
 import { Illustrative, StatusBadge } from '../ui/Badge';
 import { Icon } from '../ui/Icon';
@@ -27,10 +27,11 @@ export function ProjectDetailSidebar({
 }) {
   const [tab, setTab] = useState<Tab>('ringkas');
   const [expanded, setExpanded] = useState(false);
+  const { speciesById } = useStore();
   const { donate } = useGatedActions();
   const site = project.site;
   const accepting = isAcceptingDonations(project);
-  const impact = donationToImpact(project.funding_target, 10, impactContextFor(project));
+  const impact = donationToImpact(project.funding_target, 10, impactContextFor(project, speciesById));
   const co2 = formatMass(impact.co2Kg);
 
   return (
@@ -95,13 +96,13 @@ export function ProjectDetailSidebar({
                 </div>
               </dl>
               <div className="psidebar__species">
-                <span className="eyebrow">Rekomendasi tanaman (referensi awal)</span>
+                <span className="eyebrow">Rekomendasi tanaman (SDSS)</span>
                 <ul>
                   {project.recommended_species.map((r) => (
                     <li key={r.species_id}>
                       <span>
-                        {SPECIES_BY_ID[r.species_id]?.local_name ?? r.species_id}
-                        <i> {SPECIES_BY_ID[r.species_id]?.scientific_name}</i>
+                        {speciesById[r.species_id]?.local_name ?? r.species_id}
+                        <i> {speciesById[r.species_id]?.scientific_name}</i>
                       </span>
                       <span className="num">{formatNumber(r.seedlings)}</span>
                     </li>

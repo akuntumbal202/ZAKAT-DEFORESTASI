@@ -38,7 +38,7 @@ function Metric({ label, value, unit, icon, accent }: { label: string; value: st
 }
 
 export function EnvironmentalImpactCalculator({ fixedProject, initialAmount = 100_000 }: Props) {
-  const { projects } = useStore();
+  const { projects, speciesById } = useStore();
   const { donate } = useGatedActions();
   const [mode, setMode] = useState<Mode>('donation');
   const [period, setPeriod] = useState<ProjectionPeriod>(10);
@@ -47,18 +47,12 @@ export function EnvironmentalImpactCalculator({ fixedProject, initialAmount = 10
   const [projectId, setProjectId] = useState<string>(fixedProject?.id ?? '');
 
   const project = fixedProject ?? projects.find((p) => p.id === projectId);
-  const ctx = impactContextFor(project);
+  const ctx = useMemo(() => impactContextFor(project, speciesById), [project, speciesById]);
 
-  const a = useMemo(() => donationToImpact(amount, period, ctx), [amount, period, ctx.costPerSeedling, ctx.survivalRate]); // eslint-disable-line react-hooks/exhaustive-deps
-  const b = useMemo(() => impactToDonation(targetTon * 1000, period, ctx), [targetTon, period, ctx.costPerSeedling, ctx.survivalRate]); // eslint-disable-line react-hooks/exhaustive-deps
-  const compareA = useMemo(
-    () => PROJECTION_PERIODS.map((p) => donationToImpact(amount, p, ctx)),
-    [amount, ctx.costPerSeedling, ctx.survivalRate], // eslint-disable-line react-hooks/exhaustive-deps
-  );
-  const compare = useMemo(
-    () => PROJECTION_PERIODS.map((p) => impactToDonation(targetTon * 1000, p, ctx)),
-    [targetTon, ctx.costPerSeedling, ctx.survivalRate], // eslint-disable-line react-hooks/exhaustive-deps
-  );
+  const a = useMemo(() => donationToImpact(amount, period, ctx), [amount, period, ctx]);
+  const b = useMemo(() => impactToDonation(targetTon * 1000, period, ctx), [targetTon, period, ctx]);
+  const compareA = useMemo(() => PROJECTION_PERIODS.map((p) => donationToImpact(amount, p, ctx)), [amount, ctx]);
+  const compare = useMemo(() => PROJECTION_PERIODS.map((p) => impactToDonation(targetTon * 1000, p, ctx)), [targetTon, ctx]);
 
   const series = mode === 'donation' ? a.series : b.series;
   const co2Series = useMemo(() => series.map((s) => s.cumulativeCo2Kg), [series]);
@@ -67,7 +61,10 @@ export function EnvironmentalImpactCalculator({ fixedProject, initialAmount = 10
     [series],
   );
   const co2 = formatMass(a.co2Kg);
+  const carbon = formatMass(a.carbonKg);
   const o2 = formatMass(a.o2Kg);
+  const plateauKg = ctx.co2KgPerTreePerYearAtPlateau ?? IMPACT_ASSUMPTIONS.co2KgPerTreePerYearAtPlateau;
+  const standTonHa = ctx.co2TonPerHaYr ?? IMPACT_ASSUMPTIONS.fallbackCo2TonPerHaPerYear;
   const canDonate = project ? isAcceptingDonations(project) : true;
   const donateTarget = project && canDonate ? project : projects.find((p) => isAcceptingDonations(p));
 
@@ -99,8 +96,13 @@ export function EnvironmentalImpactCalculator({ fixedProject, initialAmount = 10
         {/* ── Inputs ─────────────────────────────── */}
         <div className="calc__inputs">
           {!fixedProject && (
-            <Select label="Lokasi / program" value={projectId} onChange={(e) => setProjectId(e.target.value)} hint="Biaya per bibit dan asumsi keberhasilan hidup mengikuti program yang dipilih.">
-              <option value="">Rata-rata asumsi umum</option>
+            <Select
+              label="Lokasi / program"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              hint="Biaya per bibit, survival rate, dan laju serapan karbon otomatis mengikuti komposisi spesies program terpilih."
+            >
+              <option value="">Rata-rata umum (Racelis et al., 2019)</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.id} · {p.name}
@@ -169,19 +171,27 @@ export function EnvironmentalImpactCalculator({ fixedProject, initialAmount = 10
               <dd className="num">{formatIDR(ctx.costPerSeedling)}</dd>
             </div>
             <div>
-              <dt>Asumsi keberhasilan hidup</dt>
+              <dt>Asumsi kelangsungan hidup</dt>
               <dd className="num">{Math.round(ctx.survivalRate * 100)}%</dd>
             </div>
             <div>
-              <dt>Serapan / pohon dewasa</dt>
-              <dd className="num">{IMPACT_ASSUMPTIONS.co2KgPerTreePerYearAtPlateau} kg/th</dd>
+              <dt>Laju tegakan (tertimbang)</dt>
+              <dd className="num">{standTonHa.toFixed(2).replace('.', ',')} t CO₂/ha/th</dd>
+            </div>
+            <div>
+              <dt>Puncak / pohon hidup</dt>
+              <dd className="num">{plateauKg.toFixed(1).replace('.', ',')} kg CO₂/th</dd>
+            </div>
+            <div className="calc__assume-basis">
+              <dt>Basis spesies</dt>
+              <dd>{ctx.basisLabel ?? 'Rujukan umum Racelis et al. (2019)'}</dd>
             </div>
           </dl>
 
           <div className="calc__note-box">
-            <strong>Model pertumbuhan logistik sigmoidal</strong>
+            <strong>Model sigmoidal berbasis spesies &amp; stoikiometri</strong>
             <p>
-              Laju serapan tahunan mengikuti kurva sigmoidal f(t) = 1 / (1 + e^(−0,65 × (t − 5,5))): fase adaptasi tahun 1–3, pertumbuhan cepat tahun 4–9, lalu mendekati laju stabil {IMPACT_ASSUMPTIONS.co2KgPerTreePerYearAtPlateau} kg CO₂/pohon/tahun pada tahun 10–15.
+              Serapan tahunan mengikuti kurva logistik f(t) = 1 / (1 + e^(−0,65 × (t − 5,5))) dikalikan laju puncak tertimbang spesies ({plateauKg.toFixed(1).replace('.', ',')} kg CO₂/pohon hidup/tahun, setara {standTonHa.toFixed(1).replace('.', ',')} t CO₂/ha/th). Konversi biomassa C = CO₂ × 12/44 dan O₂ = CO₂ × 32/44 (≈ C × 2,67).
             </p>
           </div>
         </div>
@@ -190,13 +200,19 @@ export function EnvironmentalImpactCalculator({ fixedProject, initialAmount = 10
         <div className="calc__out">
           <div className="calc__out-head">
             <h3>{mode === 'donation' ? 'Estimasi dampak' : 'Estimasi kebutuhan dana'}</h3>
-            <Illustrative label="Simulasi ilustratif" />
+            <Illustrative label="Proyeksi berbasis literatur" />
           </div>
 
           {mode === 'donation' ? (
-            <div className="metrics">
-              <Metric icon="sprout" label="Bibit didukung" value={a.seedlings >= 10 ? formatNumber(a.seedlings) : formatNumber1(a.seedlings)} unit="bibit" />
+            <div className="metrics metrics--4">
+              <Metric
+                icon="sprout"
+                label="Bibit didukung"
+                value={a.seedlings >= 10 ? formatNumber(a.seedlings) : formatNumber1(a.seedlings)}
+                unit="bibit"
+              />
               <Metric icon="cloud" label={`CO₂ terserap · ${period} th`} value={co2.value} unit={co2.unit} accent />
+              <Metric icon="leaf" label={`Karbon (C) · ${period} th`} value={carbon.value} unit={carbon.unit} />
               <Metric icon="wind" label={`O₂ dihasilkan · ${period} th`} value={o2.value} unit={o2.unit} />
             </div>
           ) : (
@@ -233,18 +249,23 @@ export function EnvironmentalImpactCalculator({ fixedProject, initialAmount = 10
                   <tr>
                     <th>Periode</th>
                     <th className="r">Serapan CO₂</th>
+                    <th className="r">Simpanan C</th>
                     <th className="r">Produksi O₂</th>
                   </tr>
                 </thead>
                 <tbody>
                   {compareA.map((c) => {
                     const mc = formatMass(c.co2Kg);
+                    const mCarb = formatMass(c.carbonKg);
                     const mo = formatMass(c.o2Kg);
                     return (
                       <tr key={c.periodYears} className={cx(c.periodYears === period && 'is-hl')}>
                         <td>{c.periodYears} tahun</td>
                         <td className="r num">
                           {mc.value} {mc.unit}
+                        </td>
+                        <td className="r num">
+                          {mCarb.value} {mCarb.unit}
                         </td>
                         <td className="r num">
                           {mo.value} {mo.unit}
@@ -296,7 +317,7 @@ export function EnvironmentalImpactCalculator({ fixedProject, initialAmount = 10
 
       <details className="method">
         <summary>
-          <Icon name="info" size={16} /> Metodologi & asumsi perhitungan <span className="muted">(versi {IMPACT_ASSUMPTIONS.version})</span>
+          <Icon name="info" size={16} /> Metodologi &amp; rujukan literatur <span className="muted">(versi {IMPACT_ASSUMPTIONS.version})</span>
           <Icon name="chevron-down" size={16} className="method__chev" />
         </summary>
         <ol>

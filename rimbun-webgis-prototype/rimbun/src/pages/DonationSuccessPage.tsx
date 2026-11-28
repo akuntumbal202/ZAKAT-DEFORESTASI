@@ -14,7 +14,7 @@ import { SITE } from '../config/site';
 
 export function DonationSuccessPage() {
   const { route } = useRouter();
-  const { state, getProject, toast } = useStore();
+  const { state, getProject, speciesById, toast } = useStore();
   const donation = state.donations.find((d) => d.id === route.param);
   const project = getProject(donation?.project_id);
 
@@ -37,7 +37,7 @@ export function DonationSuccessPage() {
     );
   }
 
-  const impact = donationToImpact(donation.amount, 10, impactContextFor(project));
+  const impact = donationToImpact(donation.amount, 10, impactContextFor(project, speciesById));
   const co2 = formatMass(impact.co2Kg);
   const copyId = async () => {
     try {

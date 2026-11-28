@@ -1,4 +1,9 @@
-import { SPECIES_CATALOG, type SpeciesCatalogItem } from '../../data/speciesCatalog';
+import {
+  SPECIES_CATALOG,
+  SPECIES_ROLE_LABEL,
+  resolveSpeciesMetrics,
+  type SpeciesCatalogItem,
+} from '../../data/speciesCatalog';
 import type {
   CostItem,
   LoaKuluPolygonProps,
@@ -8,89 +13,278 @@ import type {
 } from '../../types';
 
 /**
- * Rule-based placeholder plant matcher & admin auto-fill helpers.
- * Reads directly from `SPECIES_CATALOG` so updating `speciesCatalog.ts`
- * automatically updates admin suggestions without touching UI code.
+ * Spatial Decision Support System (SDSS) — Species Suitability Ranking & Cost Helpers
+ * ====================================================================================
+ * Evaluates every species in the active database (`public.species` via AppStore)
+ * against the 5 biophysical attributes of each Loa Kulu polygon:
+ *   1. Elevasi (FABDEM, mdpl)            — bobot 20%
+ *   2. Kelerengan (FABDEM, derajat)      — bobot 20%
+ *   3. Curah hujan tahunan (ERA5, mm/th) — bobot 20%
+ *   4. Jenis tanah dominan (Equal-Area)  — bobot 20%
+ *   5. Tutupan lahan (Dynamic World 1/2) — bobot 20%
+ * Plus ecological tie-break heuristics (pioneer on open land, riparian on Organosol,
+ * erosion-control palm on steep slope).
  */
+
+export interface BiophysicalCheck {
+  key: 'elevation' | 'slope' | 'rainfall' | 'soil' | 'landCover';
+  label: string;
+  ok: boolean;
+  detail: string;
+}
+
+export type SuitabilityTier = 'Sangat Cocok' | 'Cocok' | 'Cukup Cocok' | 'Kurang Cocok';
+
+export interface RankedSpeciesEvaluation {
+  item: SpeciesCatalogItem;
+  /** Normalized suitability score 0–100 */
+  score: number;
+  tier: SuitabilityTier;
+  checks: BiophysicalCheck[];
+  matchedCount: number;
+  ecologicalNote: string | null;
+}
 
 function matchesSoil(tanahDom: string, allowedSoils: string[]): boolean {
   const lower = tanahDom.toLowerCase();
-  return allowedSoils.some((s) => lower.includes(s.toLowerCase()));
+  return allowedSoils.some((s) => s.trim().length > 0 && lower.includes(s.toLowerCase()));
 }
 
-function scoreSpeciesForPolygon(item: SpeciesCatalogItem, props: LoaKuluPolygonProps): number {
+function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, n));
+}
+
+export function evaluateSpeciesForPolygon(
+  item: SpeciesCatalogItem,
+  props: LoaKuluPolygonProps,
+): RankedSpeciesEvaluation {
   const r = item.suitability;
-  let score = 0;
+  const elevOk = props.elev_med >= r.elev_m[0] && props.elev_med <= r.elev_m[1];
+  const slopeOk = props.slope_med <= r.slope_max_deg;
+  const rainOk = props.rain_mean >= r.rain_mm[0] && props.rain_mean <= r.rain_mm[1];
+  const soilOk = matchesSoil(props.tanah_dom, r.soils);
+  const coverOk = r.kelas_ids.includes(props.kelas_id);
 
-  if (props.elev_med >= r.elev_m[0] && props.elev_med <= r.elev_m[1]) score += 25;
-  if (props.slope_med <= r.slope_max_deg) score += 25;
-  else score -= (props.slope_med - r.slope_max_deg) * 2;
+  // Base 5-factor biophysical score (0–90) + ecological site-fit bonus (0–10)
+  let raw = 0;
 
-  if (props.rain_mean >= r.rain_mm[0] && props.rain_mean <= r.rain_mm[1]) score += 20;
-  if (matchesSoil(props.tanah_dom, r.soils)) score += 20;
-  if (r.kelas_ids.includes(props.kelas_id)) score += 15;
-
-  // Ecological heuristics for Loa Kulu conditions
-  if (props.kelas_id === 1 && r.role === 'pionir') score += 14;
-  if (props.slope_med >= 11 && item.id === 'aren') score += 15;
-  if (props.tanah_dom.toLowerCase().includes('organosol') && r.role === 'riparian') score += 16;
-  if (props.kelas_id === 2 && props.slope_med < 11 && r.role === 'agroforestri') score += 8;
-
-  return score;
-}
-
-function buildReason(item: SpeciesCatalogItem, props: LoaKuluPolygonProps): string {
-  const parts: string[] = [];
-  if (item.suitability.role === 'pionir') {
-    parts.push('berperan sebagai pionir penutup tajuk cepat');
-  } else if (item.suitability.role === 'klimaks') {
-    parts.push('pengayaan tegakan asli jangka panjang');
-  } else if (item.suitability.role === 'riparian') {
-    parts.push('adaptif pada tanah lembap/organosol');
+  // 1. Elevation (max 18)
+  if (elevOk) {
+    raw += 18;
   } else {
-    parts.push('mendukung agroforestri dan penguatan akar');
+    const dist = props.elev_med < r.elev_m[0] ? r.elev_m[0] - props.elev_med : props.elev_med - r.elev_m[1];
+    raw += Math.max(0, 10 - dist * 0.05);
   }
 
+  // 2. Slope (max 18)
+  if (slopeOk) {
+    raw += 18;
+  } else {
+    const over = props.slope_med - r.slope_max_deg;
+    raw += Math.max(-8, 8 - over * 2);
+  }
+
+  // 3. Rainfall (max 18)
+  if (rainOk) {
+    raw += 18;
+  } else {
+    const dist = props.rain_mean < r.rain_mm[0] ? r.rain_mm[0] - props.rain_mean : props.rain_mean - r.rain_mm[1];
+    raw += Math.max(0, 10 - dist * 0.015);
+  }
+
+  // 4. Soil (max 18)
+  if (soilOk) raw += 18;
+
+  // 5. Land cover class (max 18)
+  if (coverOk) raw += 18;
+
+  // Ecological bonus for Loa Kulu conditions (max 10)
+  let bonus = 0;
+  let ecologicalNote: string | null = null;
+  const soilLower = props.tanah_dom.toLowerCase();
+
+  if (props.kelas_id === 1 && r.role === 'pionir') {
+    bonus += 10;
+    ecologicalNote = 'Prioritas pionir penutup tajuk cepat pada lahan terbuka/pascatambang';
+  } else if ((soilLower.includes('organosol') || soilLower.includes('aluvial')) && r.role === 'riparian') {
+    bonus += 10;
+    ecologicalNote = 'Adaptif pada tanah lembap/organosol dataran rendah';
+  } else if (props.slope_med >= 11 && item.id === 'aren') {
+    bonus += 10;
+    ecologicalNote = 'Perakaran serabut rapat efektif menahan erosi lereng curam';
+  } else if (props.kelas_id === 2 && props.slope_med < 11 && r.role === 'agroforestri') {
+    bonus += 8;
+    ecologicalNote = 'Ideal untuk pengayaan agroforestri/MPTS bersama warga';
+  } else if (props.kelas_id === 2 && r.role === 'klimaks') {
+    bonus += 7;
+    ecologicalNote = 'Sesuai untuk pengayaan spesies lokal/konservasi berkanopi tinggi';
+  } else if (r.role === 'pionir' && props.kelas_id === 2) {
+    bonus += 4;
+  }
+
+  const score = Math.round(clamp(raw + bonus, 0, 100));
+  const tier: SuitabilityTier =
+    score >= 85 ? 'Sangat Cocok' : score >= 70 ? 'Cocok' : score >= 50 ? 'Cukup Cocok' : 'Kurang Cocok';
+
+  const checks: BiophysicalCheck[] = [
+    {
+      key: 'elevation',
+      label: 'Elevasi',
+      ok: elevOk,
+      detail: `${r.elev_m[0]}–${r.elev_m[1]} m (lahan ${props.elev_med.toFixed(0)} m)`,
+    },
+    {
+      key: 'slope',
+      label: 'Lereng',
+      ok: slopeOk,
+      detail: `≤ ${r.slope_max_deg}° (lahan ${props.slope_med.toFixed(1)}°)`,
+    },
+    {
+      key: 'rainfall',
+      label: 'Hujan',
+      ok: rainOk,
+      detail: `${r.rain_mm[0]}–${r.rain_mm[1]} mm (lahan ${Math.round(props.rain_mean)} mm)`,
+    },
+    {
+      key: 'soil',
+      label: 'Tanah',
+      ok: soilOk,
+      detail: `${r.soils.join(', ')}`,
+    },
+    {
+      key: 'landCover',
+      label: 'Tutupan',
+      ok: coverOk,
+      detail: `Kelas ${r.kelas_ids.join(' & ')} (lahan Kelas ${props.kelas_id})`,
+    },
+  ];
+
+  return {
+    item,
+    score,
+    tier,
+    checks,
+    matchedCount: checks.filter((c) => c.ok).length,
+    ecologicalNote,
+  };
+}
+
+export function rankSpeciesForPolygon(
+  props: LoaKuluPolygonProps,
+  catalog: SpeciesCatalogItem[] = SPECIES_CATALOG,
+  options?: { validOnly?: boolean; prioritizeValid?: boolean },
+): RankedSpeciesEvaluation[] {
+  const validOnly = options?.validOnly ?? false;
+  const prioritizeValid = options?.prioritizeValid ?? false;
+  const pool = validOnly ? catalog.filter((s) => s.verification_status === 'valid') : catalog;
+
+  return pool
+    .map((item) => evaluateSpeciesForPolygon(item, props))
+    .sort((a, b) => {
+      if (prioritizeValid && a.item.verification_status !== b.item.verification_status) {
+        // Prioritize valid species if they are at least reasonably suitable (≥ 65)
+        const aVal = a.item.verification_status === 'valid' && a.score >= 65;
+        const bVal = b.item.verification_status === 'valid' && b.score >= 65;
+        if (aVal !== bVal) return aVal ? -1 : 1;
+      }
+      if (b.score !== a.score) return b.score - a.score;
+      if (a.item.verification_status !== b.item.verification_status) {
+        return a.item.verification_status === 'valid' ? -1 : 1;
+      }
+      return a.item.local_name.localeCompare(b.item.local_name);
+    });
+}
+
+export function buildSuitabilityReason(ev: RankedSpeciesEvaluation, props: LoaKuluPolygonProps): string {
+  const roleLabel = SPECIES_ROLE_LABEL[ev.item.suitability.role];
+  const parts: string[] = [];
+  if (ev.ecologicalNote) {
+    parts.push(ev.ecologicalNote);
+  } else {
+    parts.push(`berperan sebagai ${roleLabel.toLowerCase()}`);
+  }
   parts.push(
-    `sesuai kriteria awal untuk elevasi ${props.elev_med.toFixed(0)} m, lereng ${props.slope_med.toFixed(1)}°, dan tanah ${props.tanah_dom.split(',')[0]}`,
+    `skor SDSS ${ev.score}% (${ev.matchedCount}/5 parameter cocok: elevasi ${props.elev_med.toFixed(0)} m, lereng ${props.slope_med.toFixed(1)}°, tanah ${props.tanah_dom.split(',')[0]})`,
   );
-  return `Saran awal sistem: ${parts.join(' · ')}.`;
+  return `${parts.join(' · ')}.`;
+}
+
+/**
+ * Target bibit fase-1 berbasis kerapatan tanam rata-rata tertimbang spesies rekomendasi.
+ * Untuk blok sangat luas (> 60 ha), target fase awal ditaper agar realistis didanai ZISWAF.
+ */
+export function suggestSeedlingTarget(
+  props: LoaKuluPolygonProps,
+  chosenSpecies: SpeciesCatalogItem[] = [],
+): number {
+  let avgDensity = 400;
+  if (chosenSpecies.length > 0) {
+    const shareSum = chosenSpecies.reduce((s, sp) => s + resolveSpeciesMetrics(sp).defaultShare, 0) || 1;
+    avgDensity = chosenSpecies.reduce((s, sp) => {
+      const m = resolveSpeciesMetrics(sp);
+      return s + m.densityPerHa * (m.defaultShare / shareSum);
+    }, 0);
+  }
+  const effective =
+    Math.min(props.luas_ha, 60) * avgDensity + Math.max(0, props.luas_ha - 60) * (avgDensity * 0.4);
+  return Math.max(1500, Math.round(effective / 100) * 100);
 }
 
 export function matchSpeciesForPolygon(
   props: LoaKuluPolygonProps,
-  totalSeedlings = suggestSeedlingTarget(props),
+  catalog: SpeciesCatalogItem[] = SPECIES_CATALOG,
+  options?: { validOnly?: boolean; totalSeedlings?: number },
 ): SpeciesRecommendation[] {
-  const ranked = [...SPECIES_CATALOG]
-    .map((item) => ({ item, score: scoreSpeciesForPolygon(item, props) }))
-    .sort((a, b) => b.score - a.score);
+  const ranked = rankSpeciesForPolygon(props, catalog, {
+    validOnly: options?.validOnly ?? false,
+    prioritizeValid: true,
+  });
+  if (ranked.length === 0) return [];
 
-  // Pick complementary top 3: at least 1 pionir/riparian + up to 2 others
-  const picked: SpeciesCatalogItem[] = [];
-  const firstPioneer = ranked.find(
-    (x) => x.item.suitability.role === 'pionir' || x.item.suitability.role === 'riparian',
+  // Pick complementary top 3: prioritize 1 pioneer/riparian canopy starter + up to 2 highest-ranked complementary species
+  const picked: RankedSpeciesEvaluation[] = [];
+  const starter = ranked.find(
+    (x) =>
+      (x.item.suitability.role === 'pionir' || x.item.suitability.role === 'riparian') && x.score >= 60,
   );
-  if (firstPioneer) picked.push(firstPioneer.item);
+  if (starter) picked.push(starter);
+
+  // Try to include ecological diversity (e.g. a second different role if suitable)
+  const diverse = ranked.find(
+    (x) =>
+      !picked.some((p) => p.item.id === x.item.id) &&
+      x.item.suitability.role !== picked[0]?.item.suitability.role &&
+      x.score >= 70,
+  );
+  if (diverse) picked.push(diverse);
 
   for (const cand of ranked) {
     if (picked.length >= 3) break;
-    if (!picked.some((p) => p.id === cand.item.id)) {
-      picked.push(cand.item);
+    if (!picked.some((p) => p.item.id === cand.item.id)) {
+      picked.push(cand);
     }
   }
 
-  const shareSum = picked.reduce((s, p) => s + p.suitability.default_share, 0) || 1;
-  const counts = picked.map((p) =>
-    Math.max(100, Math.round((totalSeedlings * (p.suitability.default_share / shareSum)) / 50) * 50),
+  const totalSeedlings =
+    options?.totalSeedlings ??
+    suggestSeedlingTarget(
+      props,
+      picked.map((p) => p.item),
+    );
+
+  const metrics = picked.map((p) => resolveSpeciesMetrics(p.item));
+  const shareSum = metrics.reduce((s, m) => s + m.defaultShare, 0) || 1;
+  const counts = metrics.map((m) =>
+    Math.max(100, Math.round((totalSeedlings * (m.defaultShare / shareSum)) / 50) * 50),
   );
   const diff = totalSeedlings - counts.reduce((s, c) => s + c, 0);
   if (counts.length > 0) counts[0] = Math.max(100, counts[0] + diff);
 
-  return picked.map((item, idx) => ({
-    species_id: item.id,
+  return picked.map((ev, idx) => ({
+    species_id: ev.item.id,
     seedlings: counts[idx],
-    suitability_reason: buildReason(item, props),
-    survival_estimate: item.suitability.default_survival,
+    suitability_reason: buildSuitabilityReason(ev, props),
+    survival_estimate: metrics[idx].defaultSurvival,
   }));
 }
 
@@ -101,12 +295,6 @@ export function suggestCategoryForPolygon(props: LoaKuluPolygonProps): ProjectCa
   }
   if (props.slope_med >= 11 || props.topo_heterogen) return 'hutan-lahan-kering';
   return 'agroforestri';
-}
-
-export function suggestSeedlingTarget(props: LoaKuluPolygonProps): number {
-  // Phase-1 actionable block target: 400 seedlings/ha up to 60 ha, tapered for massive >60 ha blocks
-  const effective = Math.min(props.luas_ha, 60) * 400 + Math.max(0, props.luas_ha - 60) * 160;
-  return Math.max(1500, Math.round(effective / 100) * 100);
 }
 
 export function buildCostBreakdown(total: number, seedlings: number, category: ProjectCategory): CostItem[] {
@@ -139,9 +327,16 @@ export function buildCostBreakdown(total: number, seedlings: number, category: P
   return items;
 }
 
-export function suggestProgramDefaults(props: LoaKuluPolygonProps) {
+export function suggestProgramDefaults(
+  props: LoaKuluPolygonProps,
+  catalog: SpeciesCatalogItem[] = SPECIES_CATALOG,
+  options?: { validOnly?: boolean },
+) {
   const category = suggestCategoryForPolygon(props);
-  const seedlings = suggestSeedlingTarget(props);
+  const recommended_species = matchSpeciesForPolygon(props, catalog, {
+    validOnly: options?.validOnly,
+  });
+  const seedlings = recommended_species.reduce((s, r) => s + r.seedlings, 0) || suggestSeedlingTarget(props);
   const unitCost =
     category === 'pascatambang'
       ? 44_000
@@ -153,7 +348,6 @@ export function suggestProgramDefaults(props: LoaKuluPolygonProps) {
 
   const funding_target = Math.round((seedlings * unitCost) / 100_000) * 100_000;
   const cost_breakdown = buildCostBreakdown(funding_target, seedlings, category);
-  const recommended_species = matchSpeciesForPolygon(props, seedlings);
 
   const status: ProjectStatus =
     props.kelas_id === 1 || props.slope_med >= 12 || props.topo_heterogen ? 'urgent' : 'open';

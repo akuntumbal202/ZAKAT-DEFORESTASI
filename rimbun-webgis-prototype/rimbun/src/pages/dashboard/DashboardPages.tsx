@@ -22,11 +22,11 @@ import { IMPACT_ASSUMPTIONS, UNCERTAINTY_NOTE } from '../../lib/impact/assumptio
 /* ─── shared selectors ─────────────────────────────────── */
 
 function useMyImpact(period: number) {
-  const { myDonations, getProject } = useStore();
+  const { myDonations, getProject, speciesById } = useStore();
   return useMemo(() => {
     const per = myDonations.map((d) => {
       const p = getProject(d.project_id);
-      return { d, p, r: donationToImpact(d.amount, period, impactContextFor(p)) };
+      return { d, p, r: donationToImpact(d.amount, period, impactContextFor(p, speciesById)) };
     });
     const totals = per.reduce(
       (acc, x) => ({
@@ -40,7 +40,7 @@ function useMyImpact(period: number) {
     const series: number[] = Array.from({ length: period }, (_, i) => per.reduce((s, x) => s + (x.r.series[i]?.cumulativeCo2Kg ?? 0), 0));
     const o2Series: number[] = series.map((v) => v * IMPACT_ASSUMPTIONS.o2PerCo2MassRatio);
     return { per, totals, series, o2Series };
-  }, [myDonations, getProject, period]);
+  }, [myDonations, getProject, speciesById, period]);
 }
 
 function byProject(donations: Donation[], getProject: (id: string) => ProjectView | undefined) {

@@ -22,7 +22,7 @@ const PAY_ICON: Record<PaymentMethodId, string> = { qris: 'qr', 'va-bank': 'bank
  * One donation = one selected restoration program.
  */
 export function DonationModal() {
-  const { state, dispatch, getProject, addDonation } = useStore();
+  const { state, dispatch, getProject, addDonation, speciesById } = useStore();
   const { navigate } = useRouter();
   const open = state.donateFor;
   const project = getProject(open?.projectId);
@@ -59,7 +59,10 @@ export function DonationModal() {
     setEmailTouched(false);
   }, [open, user?.name, user?.email]);
 
-  const impact = useMemo(() => (project ? donationToImpact(amount, 10, impactContextFor(project)) : null), [amount, project]);
+  const impact = useMemo(
+    () => (project ? donationToImpact(amount, 10, impactContextFor(project, speciesById)) : null),
+    [amount, project, speciesById],
+  );
 
   if (!open || !project || !user) return null;
   const close = () => !processing && dispatch({ type: 'closeDonate' });

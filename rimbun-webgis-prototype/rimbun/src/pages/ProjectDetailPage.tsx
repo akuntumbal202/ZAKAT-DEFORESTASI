@@ -299,8 +299,8 @@ export function ProjectDetailPage() {
                           Total <b>{formatNumber(project.total_seedlings)}</b> bibit
                         </span>
                       </div>
-                      <Callout tone="sim" title="Katalog spesies referensi awal">
-                        Daftar tanaman di bawah ini merupakan rekomendasi awal berbasis parameter fisik lahan dan sedang dalam proses penyempurnaan bersama tim kehutanan/tanaman.
+                      <Callout tone="sim" title="Rekomendasi spesies berbasis SDSS">
+                        Komposisi tanaman dipilih berdasarkan peringkat kesesuaian parameter fisik lahan (elevasi, kelerengan, curah hujan, tanah, dan tutupan) dari database spesies Rimbun. Entri berlabel <b>Data terverifikasi</b> menggunakan rujukan empiris literatur, sedangkan <b>Referensi awal</b> masih menunggu verifikasi tim biologi/silvikultur.
                       </Callout>
                       <div className="species-list">
                         {project.recommended_species.map((r) => (

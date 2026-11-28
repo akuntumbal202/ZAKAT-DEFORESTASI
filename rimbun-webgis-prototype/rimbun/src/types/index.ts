@@ -69,13 +69,48 @@ export interface SiteAttributes {
   provenance: DataProvenance;
 }
 
+export type SpeciesRole = 'pionir' | 'klimaks' | 'agroforestri' | 'riparian';
+export type SpeciesVerificationStatus = 'valid' | 'dummy';
+export type SpeciesGrowthForm = 'pohon' | 'pohon buah' | 'palma' | 'bambu';
+
+export interface SpeciesSuitabilityRule {
+  /** Data inti: Rentang elevasi ideal [min_mdpl, max_mdpl] */
+  elev_m: [number, number];
+  /** Data inti: Kelerengan maksimum yang direkomendasikan (derajat) */
+  slope_max_deg: number;
+  /** Data inti: Rentang curah hujan tahunan [min_mm, max_mm] */
+  rain_mm: [number, number];
+  /** Data inti: Substring kelas tanah (`tanah_dom`) yang cocok */
+  soils: string[];
+  /** Data inti: Kelas tutupan Dynamic World target: 1 = Lahan terbuka/pascatambang, 2 = Semak/kebun */
+  kelas_ids: (1 | 2)[];
+  /** Data inti: Peran ekologis spesies */
+  role: SpeciesRole;
+  /** Data turunan/opsional: Laju serapan CO₂ tegakan rujukan (ton CO₂/ha/tahun). Jika null, fallback Racelis (2019). */
+  co2_ton_per_ha_yr: number | null;
+  /** Data turunan/opsional: Kerapatan tanam standar (bibit/ha). Jika null, fallback sesuai peran ekologis. */
+  density_per_ha: number | null;
+  /** Data turunan/opsional: Perkiraan kelulushidupan (0-1). Jika null, fallback 0.70. */
+  default_survival: number | null;
+  /** Data turunan/opsional: Bobot porsi bibit default relatif. Jika null, fallback 0.30. */
+  default_share: number | null;
+  /** Data turunan/opsional: Catatan sumber literatur serapan karbon / kesesuaian. */
+  carbon_source: string | null;
+}
+
 export interface Species {
   id: string;
   local_name: string;
   scientific_name: string;
-  growth_form: 'pohon' | 'pohon buah' | 'palma' | 'bambu';
+  growth_form: SpeciesGrowthForm;
   description: string;
   traits: string[];
+}
+
+export interface SpeciesCatalogItem extends Species {
+  verification_status: SpeciesVerificationStatus;
+  suitability: SpeciesSuitabilityRule;
+  updated_at?: string;
 }
 
 export interface SpeciesRecommendation {

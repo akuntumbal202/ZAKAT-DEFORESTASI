@@ -20,9 +20,9 @@ import { useGatedActions } from '../store/actions';
 import { PROJECTION_PERIODS, QUICK_AMOUNTS, type ProjectionPeriod } from '../config/site';
 
 export function HomePage() {
-  const { projects } = useStore();
+  const { projects, speciesById } = useStore();
   const { donate } = useGatedActions();
-  const stats = useMemo(() => platformStats(projects), [projects]);
+  const stats = useMemo(() => platformStats(projects, speciesById), [projects, speciesById]);
   const tr = useMemo(() => transparencyStats(projects), [projects]);
   const open = projects.filter(isAcceptingDonations);
   const lead = open.find((p) => p.status === 'urgent') ?? open[0] ?? projects[0];

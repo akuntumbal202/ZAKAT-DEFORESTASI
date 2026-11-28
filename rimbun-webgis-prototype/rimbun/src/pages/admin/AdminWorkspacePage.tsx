@@ -14,15 +14,18 @@ import { Badge, StatusBadge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { EmptyState, ProgressBar } from '../../components/ui/Feedback';
 import { ProgramEditorModal } from '../../components/admin/ProgramEditorModal';
+import { SpeciesManagerPanel } from '../../components/admin/SpeciesManagerPanel';
 
 type AdminFilter = 'all' | 'non-program' | 'draft' | 'published' | 'kelas-1';
 type AdminSort = 'votes-desc' | 'luas-desc' | 'slope-desc';
+type AdminSection = 'polygons' | 'species';
 
 export function AdminWorkspacePage() {
   const {
     state,
     allProjects,
     projects,
+    speciesCatalog,
     nominations,
     setPublicationStatus,
     exportConfigJson,
@@ -34,6 +37,7 @@ export function AdminWorkspacePage() {
   const allPolygons = useMemo(() => getAllPolygonAttributes(), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [section, setSection] = useState<AdminSection>('polygons');
   const [mode, setMode] = useState<MapMode>('all-deforestation');
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<AdminFilter>('all');
@@ -51,7 +55,6 @@ export function AdminWorkspacePage() {
 
   const draftCount = allProjects.filter((p) => p.publication_status === 'draft').length;
   const totalVotes = Object.values(nominations).reduce((s, n) => s + n, 0);
-  const totalHa = useMemo(() => allPolygons.reduce((s, p) => s + p.luas_ha, 0), [allPolygons]);
 
   const queue = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -134,13 +137,29 @@ export function AdminWorkspacePage() {
         <header className="admin-bar">
           <div className="admin-bar__title">
             <Badge tone="funded">Mode Admin Kurator</Badge>
-            <h1>Kurasi Poligon &amp; Program Loa Kulu</h1>
+            <h1>Kurasi Poligon &amp; Database Spesies</h1>
+          </div>
+          <div className="segmented" role="tablist" aria-label="Bagian workspace Admin">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={section === 'polygons'}
+              className={cx('segmented__opt', section === 'polygons' && 'is-active')}
+              onClick={() => setSection('polygons')}
+            >
+              Kurasi Poligon ({allPolygons.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={section === 'species'}
+              className={cx('segmented__opt', section === 'species' && 'is-active')}
+              onClick={() => setSection('species')}
+            >
+              Database Spesies ({speciesCatalog.length})
+            </button>
           </div>
           <div className="admin-bar__kpis num">
-            <div>
-              <small>Total Poligon</small>
-              <b>{allPolygons.length} ({formatNumber(Math.round(totalHa))} ha)</b>
-            </div>
             <div>
               <small>Published</small>
               <b>{projects.length}</b>
@@ -150,25 +169,36 @@ export function AdminWorkspacePage() {
               <b>{draftCount}</b>
             </div>
             <div>
-              <small>Usulan Publik</small>
+              <small>Spesies Valid</small>
+              <b>{speciesCatalog.filter((s) => s.verification_status === 'valid').length}/{speciesCatalog.length}</b>
+            </div>
+            <div>
+              <small>Usulan</small>
               <b>{totalVotes}</b>
             </div>
           </div>
           <div className="admin-bar__actions">
-            <input ref={fileInputRef} type="file" accept="application/json,.json" hidden onChange={handleImport} />
-            <Button size="sm" variant="secondary" icon="download" onClick={handleExport}>
-              Export JSON
-            </Button>
-            <Button size="sm" variant="secondary" icon="upload" onClick={() => fileInputRef.current?.click()}>
-              Import JSON
-            </Button>
+            {section === 'polygons' && (
+              <>
+                <input ref={fileInputRef} type="file" accept="application/json,.json" hidden onChange={handleImport} />
+                <Button size="sm" variant="secondary" icon="download" onClick={handleExport}>
+                  Export JSON
+                </Button>
+                <Button size="sm" variant="secondary" icon="upload" onClick={() => fileInputRef.current?.click()}>
+                  Import JSON
+                </Button>
+              </>
+            )}
             <Button size="sm" variant="ghost" icon="refresh" onClick={resetDemo}>
               Reset
             </Button>
           </div>
         </header>
 
-        {/* Interactive 2-Tab Admin Map Workspace */}
+        {section === 'species' ? (
+          <SpeciesManagerPanel />
+        ) : (
+        /* Interactive 2-Tab Admin Map Workspace */
         <div className={cx('explore explore--admin', selectedPoly && 'has-selection')}>
           <section className="explore__panel" aria-label="Antrean kurasi poligon Admin">
             <div className="explore__panel-head">
@@ -405,6 +435,7 @@ export function AdminWorkspacePage() {
             </>
           )}
         </div>
+        )}
       </div>
 
       <ProgramEditorModal

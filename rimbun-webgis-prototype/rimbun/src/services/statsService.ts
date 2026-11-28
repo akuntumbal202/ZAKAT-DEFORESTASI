@@ -1,11 +1,15 @@
-import type { ProjectView } from '../types';
+import type { ProjectView, SpeciesCatalogItem } from '../types';
+import { SPECIES_CATALOG_BY_ID } from '../data/speciesCatalog';
 import { donationToImpact } from '../lib/impact/impactModel';
 import { impactContextFor, isAcceptingDonations } from './projectService';
 import { REALISATION } from '../data/mock/transparency';
 import { getAllPolygonAttributes } from './spatialService';
 
 /** Platform-level aggregates for published Loa Kulu programs + overall spatial context. */
-export function platformStats(projects: ProjectView[]) {
+export function platformStats(
+  projects: ProjectView[],
+  speciesById: Record<string, SpeciesCatalogItem> = SPECIES_CATALOG_BY_ID,
+) {
   const allPolygons = getAllPolygonAttributes();
   const totalDeforestedArea = allPolygons.reduce((s, p) => s + p.luas_ha, 0);
   const totalArea = projects.reduce((s, p) => s + (p.site?.area_ha ?? 0), 0);
@@ -15,7 +19,7 @@ export function platformStats(projects: ProjectView[]) {
   const totalDonors = projects.reduce((s, p) => s + p.donor_count, 0);
   const active = projects.filter(isAcceptingDonations).length;
   const projectedCo2Kg10y = projects.reduce(
-    (s, p) => s + donationToImpact(p.funding_target, 10, impactContextFor(p)).co2Kg,
+    (s, p) => s + donationToImpact(p.funding_target, 10, impactContextFor(p, speciesById)).co2Kg,
     0,
   );
   return {

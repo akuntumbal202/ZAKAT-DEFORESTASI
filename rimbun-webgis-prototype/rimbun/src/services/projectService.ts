@@ -1,5 +1,6 @@
-import type { Donation, ProjectStatus, ProjectView, RestorationProject } from '../types';
+import type { Donation, ProjectStatus, ProjectView, RestorationProject, SpeciesCatalogItem } from '../types';
 import { PROJECTS } from '../data/mock/projects';
+import { SPECIES_CATALOG_BY_ID, resolveSpeciesMetrics } from '../data/speciesCatalog';
 import { getSiteAttributes } from './siteService';
 import { IMPACT_ASSUMPTIONS } from '../lib/impact/assumptions';
 import type { ImpactContext } from '../lib/impact/impactModel';
@@ -65,14 +66,61 @@ export function isAcceptingDonations(p: Pick<ProjectView, 'status' | 'publicatio
   return p.publication_status === 'published' && (p.status === 'open' || p.status === 'urgent');
 }
 
-export function impactContextFor(p: ProjectView | null | undefined): ImpactContext {
-  if (!p) return { costPerSeedling: IMPACT_ASSUMPTIONS.fallbackCostPerSeedling, survivalRate: IMPACT_ASSUMPTIONS.defaultSurvivalRate };
-  const withRate = p.recommended_species.filter((r) => r.survival_estimate != null);
-  const weighted = withRate.reduce((s, r) => s + (r.survival_estimate ?? 0) * r.seedlings, 0);
-  const n = withRate.reduce((s, r) => s + r.seedlings, 0);
+export function impactContextFor(
+  p: ProjectView | null | undefined,
+  speciesById: Record<string, SpeciesCatalogItem> = SPECIES_CATALOG_BY_ID,
+): ImpactContext {
+  if (!p) {
+    return {
+      costPerSeedling: IMPACT_ASSUMPTIONS.fallbackCostPerSeedling,
+      survivalRate: IMPACT_ASSUMPTIONS.defaultSurvivalRate,
+      co2KgPerTreePerYearAtPlateau: IMPACT_ASSUMPTIONS.co2KgPerTreePerYearAtPlateau,
+      co2TonPerHaYr: IMPACT_ASSUMPTIONS.fallbackCo2TonPerHaPerYear,
+      densityPerHa: IMPACT_ASSUMPTIONS.fallbackDensityPerHa,
+      basisLabel: 'Rujukan umum Racelis et al. (2019)',
+    };
+  }
+
+  let totalSeedlings = 0;
+  let totalSurviving = 0;
+  let weightedPlateauKg = 0;
+  let weightedCo2Ha = 0;
+  let weightedDensity = 0;
+  const names: string[] = [];
+
+  for (const r of p.recommended_species) {
+    const qty = Math.max(0, Number(r.seedlings) || 0);
+    if (qty <= 0) continue;
+    const sp = speciesById[r.species_id];
+    const m = sp ? resolveSpeciesMetrics(sp) : null;
+    const surv = r.survival_estimate ?? m?.defaultSurvival ?? IMPACT_ASSUMPTIONS.defaultSurvivalRate;
+    const plateauKg = m?.co2KgPerSurvivingTreeYr ?? IMPACT_ASSUMPTIONS.co2KgPerTreePerYearAtPlateau;
+    const co2Ha = m?.co2TonPerHaYr ?? IMPACT_ASSUMPTIONS.fallbackCo2TonPerHaPerYear;
+    const density = m?.densityPerHa ?? IMPACT_ASSUMPTIONS.fallbackDensityPerHa;
+
+    totalSeedlings += qty;
+    totalSurviving += qty * surv;
+    weightedPlateauKg += qty * surv * plateauKg;
+    weightedCo2Ha += qty * co2Ha;
+    weightedDensity += qty * density;
+    if (sp) names.push(sp.local_name);
+  }
+
+  const survivalRate = totalSeedlings > 0 ? totalSurviving / totalSeedlings : IMPACT_ASSUMPTIONS.defaultSurvivalRate;
+  const co2KgPerTreePerYearAtPlateau =
+    totalSurviving > 0 ? weightedPlateauKg / totalSurviving : IMPACT_ASSUMPTIONS.co2KgPerTreePerYearAtPlateau;
+  const co2TonPerHaYr =
+    totalSeedlings > 0 ? weightedCo2Ha / totalSeedlings : IMPACT_ASSUMPTIONS.fallbackCo2TonPerHaPerYear;
+  const densityPerHa =
+    totalSeedlings > 0 ? weightedDensity / totalSeedlings : IMPACT_ASSUMPTIONS.fallbackDensityPerHa;
+
   return {
     costPerSeedling: p.cost_per_seedling,
-    survivalRate: n > 0 ? weighted / n : IMPACT_ASSUMPTIONS.defaultSurvivalRate,
+    survivalRate,
+    co2KgPerTreePerYearAtPlateau,
+    co2TonPerHaYr,
+    densityPerHa,
+    basisLabel: names.length > 0 ? `Komposisi ${names.length} spesies (${names.join(', ')})` : 'Rujukan umum Racelis et al. (2019)',
   };
 }
 

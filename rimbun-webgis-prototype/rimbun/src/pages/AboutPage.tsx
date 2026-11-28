@@ -3,7 +3,7 @@ import { PageHeader, PageHeaderVisual, SectionHeader } from '../components/Stati
 import { Icon } from '../components/ui/Icon';
 import { Button } from '../components/ui/Button';
 import { to } from '../router/router';
-import { GIS_METHOD_STEPS, IMPACT_ASSUMPTIONS, METHOD_NOTES, UNCERTAINTY_NOTE } from '../lib/impact/assumptions';
+import { GIS_METHOD_STEPS, IMPACT_ASSUMPTIONS, LITERATURE_REFERENCES, METHOD_NOTES, UNCERTAINTY_NOTE } from '../lib/impact/assumptions';
 import { SITE } from '../config/site';
 
 const PILLARS = [
@@ -147,7 +147,7 @@ export function AboutPage() {
             <div className="two-col two-col--wide-left">
               <div>
                 <h3 className="h-sub" style={{ marginBottom: 14 }}>
-                  <Icon name="chart" size={17} /> B. Metodologi proyeksi serapan CO₂ &amp; produksi O₂
+                  <Icon name="chart" size={17} /> B. Metodologi proyeksi karbon (C), serapan CO₂ &amp; produksi O₂
                 </h3>
                 <ol className="method-steps">
                   {METHOD_NOTES.map((m, i) => (
@@ -164,9 +164,23 @@ export function AboutPage() {
                 </h3>
                 <p className="small">{UNCERTAINTY_NOTE}</p>
                 <p className="small muted" style={{ marginTop: 10 }}>
-                  Arsitektur kode memisahkan logika perhitungan di modul terpisah sehingga persamaan alometrik per spesies dapat dipasang langsung tanpa mengubah tampilan antarmuka.
+                  Database spesies dikelola secara modular di Supabase (dengan status verifikasi Valid/Dummy) sehingga parameter biofisik dan laju serapan per spesies dapat diperbarui oleh tim biologi/silvikultur tanpa mengubah tampilan antarmuka.
                 </p>
               </div>
+            </div>
+
+            <div className="panel panel--pad">
+              <h3 className="h-sub" style={{ marginBottom: 12 }}>
+                <Icon name="file" size={17} /> C. Rujukan literatur ilmiah (SDSS &amp; kalkulator dampak)
+              </h3>
+              <ul className="lit-refs">
+                {LITERATURE_REFERENCES.map((ref) => (
+                  <li key={ref.citation}>
+                    <b>{ref.citation}</b>
+                    <span>{ref.scope}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>

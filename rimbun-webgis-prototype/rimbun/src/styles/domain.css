@@ -806,6 +806,28 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
+.metrics--4 {
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (min-width: 1120px) {
+  .metrics--4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.calc__assume-basis {
+  flex-direction: column;
+  gap: 2px;
+}
+.calc__assume-basis dd {
+  font-weight: 500;
+  color: var(--c-ink-700);
+}
+.species__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .metric {
   display: grid;
   gap: 4px;

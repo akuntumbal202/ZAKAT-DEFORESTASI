@@ -15,13 +15,17 @@ import type {
   ProjectView,
   PublicationStatus,
   RestorationProject,
+  SpeciesCatalogItem,
   User,
 } from '../types';
 import { buildAllProjectViews, getSeedProjects } from '../services/projectService';
+import { SPECIES_CATALOG } from '../data/speciesCatalog';
 import { loadState, saveState, clearState } from '../services/storage';
 import type { StoredAccount } from '../services/authService';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
+  deleteSpeciesBatchRemote,
+  deleteSpeciesRemote,
   fetchBackendSnapshot,
   fetchCurrentSupabaseUser,
   insertDonationRemote,
@@ -30,6 +34,8 @@ import {
   toggleSavedRemote,
   updateProfileRemote,
   upsertProgramRemote,
+  upsertSpeciesBatchRemote,
+  upsertSpeciesRemote,
 } from '../services/backendService';
 import {
   DEMO_ADMIN,
@@ -57,6 +63,7 @@ interface PersistedState {
   intent: AuthIntent | null;
   demoSeeded: boolean;
   customProjects: Record<string, RestorationProject>;
+  speciesList: SpeciesCatalogItem[];
   nominations: Record<string, number>;
   userNominated: string[];
 }
@@ -66,6 +73,7 @@ interface UIState {
   toast: { id: number; text: string; tone: 'ok' | 'info' | 'warn' } | null;
   backendConnected: boolean;
   remoteAuthoritative: boolean;
+  speciesTableReady: boolean;
   syncing: boolean;
 }
 
@@ -87,6 +95,10 @@ type Action =
   | { type: 'clearToast' }
   | { type: 'toggleNominate'; lkCode: string }
   | { type: 'upsertProject'; project: RestorationProject }
+  | { type: 'upsertSpecies'; species: SpeciesCatalogItem }
+  | { type: 'upsertSpeciesBatch'; items: SpeciesCatalogItem[] }
+  | { type: 'deleteSpecies'; id: string }
+  | { type: 'deleteSpeciesBatch'; ids: string[] }
   | { type: 'importPayload'; customProjects: Record<string, RestorationProject>; nominations?: Record<string, number> }
   | {
       type: 'hydrateRemote';
@@ -97,6 +109,8 @@ type Action =
       nominations: Record<string, number>;
       userNominated: string[];
       savedProjectIds: string[];
+      speciesList?: SpeciesCatalogItem[];
+      speciesTableReady: boolean;
       remoteAuthoritative: boolean;
     }
   | { type: 'setSyncing'; syncing: boolean }
@@ -110,6 +124,7 @@ const initialPersisted: PersistedState = {
   intent: null,
   demoSeeded: false,
   customProjects: {},
+  speciesList: SPECIES_CATALOG,
   nominations: INITIAL_NOMINATIONS,
   userNominated: [],
 };
@@ -222,6 +237,36 @@ function reducer(state: State, a: Action): State {
         },
       };
 
+    case 'upsertSpecies': {
+      const next = [...state.speciesList.filter((s) => s.id !== a.species.id), a.species].sort((x, y) =>
+        x.local_name.localeCompare(y.local_name),
+      );
+      return { ...state, speciesList: next };
+    }
+
+    case 'upsertSpeciesBatch': {
+      const map = new Map<string, SpeciesCatalogItem>(state.speciesList.map((s) => [s.id, s]));
+      a.items.forEach((it) => map.set(it.id, it));
+      return {
+        ...state,
+        speciesList: [...map.values()].sort((x, y) => x.local_name.localeCompare(y.local_name)),
+      };
+    }
+
+    case 'deleteSpecies':
+      return {
+        ...state,
+        speciesList: state.speciesList.filter((s) => s.id !== a.id),
+      };
+
+    case 'deleteSpeciesBatch': {
+      const drop = new Set(a.ids);
+      return {
+        ...state,
+        speciesList: state.speciesList.filter((s) => !drop.has(s.id)),
+      };
+    }
+
     case 'importPayload':
       return {
         ...state,
@@ -239,12 +284,14 @@ function reducer(state: State, a: Action): State {
         ...state,
         user: nextUser,
         customProjects: a.programs,
+        speciesList: a.speciesList && a.speciesList.length > 0 ? a.speciesList : state.speciesList,
         donations: a.donations,
         nominations: a.nominations,
         userNominated: a.userNominated,
         saved: nextSaved,
         backendConnected: true,
         remoteAuthoritative: a.remoteAuthoritative,
+        speciesTableReady: a.speciesTableReady,
         syncing: false,
       };
     }
@@ -258,6 +305,7 @@ function reducer(state: State, a: Action): State {
         donateFor: null,
         backendConnected: state.backendConnected,
         remoteAuthoritative: state.remoteAuthoritative,
+        speciesTableReady: state.speciesTableReady,
         syncing: false,
         toast: { id: Date.now(), text: 'Data simulasi & kurasi direset ke seed awal Loa Kulu.', tone: 'info' },
       };
@@ -270,6 +318,11 @@ interface Store {
   isSandboxDemo: boolean;
   /** True when VITE_SUPABASE_URL & KEY are set and connected. */
   isBackendConfigured: boolean;
+  /** True when `public.species` table exists and synced from Supabase. */
+  speciesTableReady: boolean;
+  /** Live species database (hydrated from Supabase `public.species`, fallback seed). */
+  speciesCatalog: SpeciesCatalogItem[];
+  speciesById: Record<string, SpeciesCatalogItem>;
   /** Published programs only (for Public views). */
   projects: ProjectView[];
   /** All programs including Drafts (for Admin views). */
@@ -291,6 +344,10 @@ interface Store {
   updateUserProfile: (patch: Pick<User, 'name' | 'phone' | 'city'>) => Promise<boolean>;
   toggleNominate: (lkCode: string) => void;
   upsertProject: (project: RestorationProject) => void;
+  upsertSpecies: (item: SpeciesCatalogItem) => Promise<{ ok: boolean; error?: string }>;
+  upsertSpeciesBatch: (items: SpeciesCatalogItem[]) => Promise<{ ok: boolean; count: number; error?: string }>;
+  deleteSpecies: (id: string) => Promise<{ ok: boolean; error?: string }>;
+  purgeUnusedDummySpecies: () => Promise<{ ok: boolean; deleted: number; skippedInUse: string[]; error?: string }>;
   setPublicationStatus: (id: string, status: PublicationStatus) => void;
   exportConfigJson: () => string;
   importConfigJson: (raw: string) => { ok: boolean; error?: string };
@@ -306,12 +363,17 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const base = isSupabaseConfigured ? initialPersisted : loadState(initialPersisted);
     // Never restore an expired Sandbox Demo user on hard reload
     const cleaned = base.user?.is_demo ? { ...base, user: null, demoSeeded: false } : base;
+    // Ensure older localStorage payloads always have speciesList initialized
+    const speciesList =
+      Array.isArray(cleaned.speciesList) && cleaned.speciesList.length > 0 ? cleaned.speciesList : SPECIES_CATALOG;
     return {
       ...cleaned,
+      speciesList,
       donateFor: null,
       toast: null,
       backendConnected: false,
       remoteAuthoritative: false,
+      speciesTableReady: false,
       syncing: isSupabaseConfigured,
     };
   });
@@ -332,10 +394,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         const programs = hasRemotePrograms
           ? snap.programs
           : Object.fromEntries(getSeedProjects().map((p) => [p.id, p]));
+        const speciesList =
+          snap.species && snap.species.length > 0 ? snap.species : SPECIES_CATALOG;
         dispatch({
           type: 'hydrateRemote',
           user: realUser,
           programs,
+          speciesList,
+          speciesTableReady: snap.speciesTableReady,
           donations: snap.donations,
           nominations: snap.nominations,
           userNominated: snap.userNominated,
@@ -365,9 +431,37 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (isSupabaseConfigured || state.user?.is_demo) return;
-    const { user, accounts, donations, saved, intent, demoSeeded, customProjects, nominations, userNominated } = state;
-    saveState({ user, accounts, donations, saved, intent, demoSeeded, customProjects, nominations, userNominated });
+    const {
+      user,
+      accounts,
+      donations,
+      saved,
+      intent,
+      demoSeeded,
+      customProjects,
+      speciesList,
+      nominations,
+      userNominated,
+    } = state;
+    saveState({
+      user,
+      accounts,
+      donations,
+      saved,
+      intent,
+      demoSeeded,
+      customProjects,
+      speciesList,
+      nominations,
+      userNominated,
+    });
   }, [state]);
+
+  const speciesCatalog = state.speciesList;
+  const speciesById = useMemo<Record<string, SpeciesCatalogItem>>(
+    () => Object.fromEntries(speciesCatalog.map((s) => [s.id, s])),
+    [speciesCatalog],
+  );
 
   const allProjects = useMemo(
     () => buildAllProjectViews(state.donations, state.customProjects, state.remoteAuthoritative),
@@ -403,6 +497,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (!state.user?.is_demo) {
         sandboxBaselineRef.current = {
           customProjects: { ...state.customProjects },
+          speciesList: [...state.speciesList],
           donations: [...state.donations],
           nominations: { ...state.nominations },
           userNominated: [...state.userNominated],
@@ -567,6 +662,105 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     [isSandboxDemo, syncFromSupabase, toast],
   );
 
+  const upsertSpecies = useCallback(
+    async (item: SpeciesCatalogItem): Promise<{ ok: boolean; error?: string }> => {
+      const normalized: SpeciesCatalogItem = {
+        ...item,
+        updated_at: new Date().toISOString(),
+      };
+      dispatch({ type: 'upsertSpecies', species: normalized });
+      if (isSandboxDemo || !isSupabaseConfigured) {
+        return { ok: true };
+      }
+      const res = await upsertSpeciesRemote(normalized);
+      if (!res.ok) {
+        toast(`Gagal menyimpan spesies ke Supabase: ${res.error}`, 'warn');
+        void syncFromSupabase();
+        return res;
+      }
+      return { ok: true };
+    },
+    [isSandboxDemo, syncFromSupabase, toast],
+  );
+
+  const upsertSpeciesBatch = useCallback(
+    async (items: SpeciesCatalogItem[]): Promise<{ ok: boolean; count: number; error?: string }> => {
+      if (items.length === 0) return { ok: false, count: 0, error: 'Tidak ada data spesies yang valid untuk diimpor.' };
+      const now = new Date().toISOString();
+      const normalized = items.map((it) => ({ ...it, updated_at: now }));
+      dispatch({ type: 'upsertSpeciesBatch', items: normalized });
+      if (isSandboxDemo || !isSupabaseConfigured) {
+        return { ok: true, count: normalized.length };
+      }
+      const res = await upsertSpeciesBatchRemote(normalized);
+      if (!res.ok) {
+        toast(`Gagal mengimpor spesies ke Supabase: ${res.error}`, 'warn');
+        void syncFromSupabase();
+        return { ok: false, count: 0, error: res.error };
+      }
+      return { ok: true, count: normalized.length };
+    },
+    [isSandboxDemo, syncFromSupabase, toast],
+  );
+
+  const deleteSpecies = useCallback(
+    async (id: string): Promise<{ ok: boolean; error?: string }> => {
+      const usedIn = allProjects
+        .filter((p) => p.recommended_species.some((r) => r.species_id === id))
+        .map((p) => p.polygon_code || p.id);
+      if (usedIn.length > 0) {
+        return {
+          ok: false,
+          error: `Tidak dapat dihapus karena sedang dipakai di program: ${usedIn.join(', ')}. Ganti dulu spesies di program tersebut.`,
+        };
+      }
+      dispatch({ type: 'deleteSpecies', id });
+      if (isSandboxDemo || !isSupabaseConfigured) {
+        return { ok: true };
+      }
+      const res = await deleteSpeciesRemote(id);
+      if (!res.ok) {
+        toast(`Gagal menghapus spesies di Supabase: ${res.error}`, 'warn');
+        void syncFromSupabase();
+        return res;
+      }
+      return { ok: true };
+    },
+    [allProjects, isSandboxDemo, syncFromSupabase, toast],
+  );
+
+  const purgeUnusedDummySpecies = useCallback(async (): Promise<{
+    ok: boolean;
+    deleted: number;
+    skippedInUse: string[];
+    error?: string;
+  }> => {
+    const usedIds = new Set<string>();
+    allProjects.forEach((p) => p.recommended_species.forEach((r) => usedIds.add(r.species_id)));
+
+    const dummies = speciesCatalog.filter((s) => s.verification_status === 'dummy');
+    const removable = dummies.filter((s) => !usedIds.has(s.id));
+    const skippedInUse = dummies.filter((s) => usedIds.has(s.id)).map((s) => s.local_name);
+
+    if (removable.length === 0) {
+      return { ok: true, deleted: 0, skippedInUse };
+    }
+
+    const ids = removable.map((s) => s.id);
+    dispatch({ type: 'deleteSpeciesBatch', ids });
+
+    if (isSandboxDemo || !isSupabaseConfigured) {
+      return { ok: true, deleted: ids.length, skippedInUse };
+    }
+    const res = await deleteSpeciesBatchRemote(ids);
+    if (!res.ok) {
+      toast(`Gagal membersihkan spesies dummy di Supabase: ${res.error}`, 'warn');
+      void syncFromSupabase();
+      return { ok: false, deleted: 0, skippedInUse, error: res.error };
+    }
+    return { ok: true, deleted: ids.length, skippedInUse };
+  }, [allProjects, isSandboxDemo, speciesCatalog, syncFromSupabase, toast]);
+
   const setPublicationStatus = useCallback(
     (id: string, status: PublicationStatus) => {
       const target = allProjects.find((p) => p.id === id);
@@ -673,6 +867,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       state,
       isSandboxDemo,
       isBackendConfigured: isSupabaseConfigured,
+      speciesTableReady: state.speciesTableReady,
+      speciesCatalog,
+      speciesById,
       projects,
       allProjects,
       getProject,
@@ -692,6 +889,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       updateUserProfile,
       toggleNominate,
       upsertProject,
+      upsertSpecies,
+      upsertSpeciesBatch,
+      deleteSpecies,
+      purgeUnusedDummySpecies,
       setPublicationStatus,
       exportConfigJson,
       importConfigJson,
@@ -702,6 +903,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     [
       state,
       isSandboxDemo,
+      speciesCatalog,
+      speciesById,
       projects,
       allProjects,
       getProject,
@@ -720,6 +923,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       updateUserProfile,
       toggleNominate,
       upsertProject,
+      upsertSpecies,
+      upsertSpeciesBatch,
+      deleteSpecies,
+      purgeUnusedDummySpecies,
       setPublicationStatus,
       exportConfigJson,
       importConfigJson,

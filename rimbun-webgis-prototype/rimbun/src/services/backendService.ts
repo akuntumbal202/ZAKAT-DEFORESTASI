@@ -1,5 +1,13 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { Donation, RestorationProject, User } from '../types';
+import type {
+  Donation,
+  RestorationProject,
+  SpeciesCatalogItem,
+  SpeciesGrowthForm,
+  SpeciesRole,
+  SpeciesVerificationStatus,
+  User,
+} from '../types';
 import type { AuthResult } from './authService';
 
 export interface BackendSnapshot {
@@ -8,6 +16,8 @@ export interface BackendSnapshot {
   nominations: Record<string, number>;
   userNominated: string[];
   savedProjectIds: string[];
+  species: SpeciesCatalogItem[] | null;
+  speciesTableReady: boolean;
 }
 
 function mapProfileRow(row: Record<string, unknown>, fallbackEmail = ''): User {
@@ -62,6 +72,76 @@ function mapDonationRow(row: Record<string, unknown>): Donation {
     payment_method: (row.payment_method as Donation['payment_method']) || 'qris',
     created_at: String(row.created_at || new Date().toISOString()),
     status: 'simulasi-berhasil',
+  };
+}
+
+function toNullableNumber(val: unknown): number | null {
+  if (val === null || val === undefined || val === '') return null;
+  const n = Number(val);
+  return Number.isFinite(n) ? n : null;
+}
+
+function mapSpeciesRow(row: Record<string, unknown>): SpeciesCatalogItem {
+  const rawRole = String(row.role || 'pionir');
+  const role: SpeciesRole =
+    rawRole === 'klimaks' || rawRole === 'agroforestri' || rawRole === 'riparian' ? rawRole : 'pionir';
+  const rawForm = String(row.growth_form || 'pohon');
+  const growth_form: SpeciesGrowthForm =
+    rawForm === 'pohon buah' || rawForm === 'palma' || rawForm === 'bambu' ? rawForm : 'pohon';
+  const verification_status: SpeciesVerificationStatus =
+    row.verification_status === 'dummy' ? 'dummy' : 'valid';
+  const rawKelas = Array.isArray(row.kelas_ids) ? row.kelas_ids.map((k) => Number(k)) : [1, 2];
+  const kelas_ids = rawKelas.filter((k): k is 1 | 2 => k === 1 || k === 2);
+
+  return {
+    id: String(row.id),
+    local_name: String(row.local_name || ''),
+    scientific_name: String(row.scientific_name || ''),
+    growth_form,
+    verification_status,
+    description: String(row.description || ''),
+    traits: Array.isArray(row.traits) ? (row.traits as string[]).filter(Boolean) : [],
+    updated_at: row.updated_at ? String(row.updated_at) : undefined,
+    suitability: {
+      elev_m: [Number(row.elev_min_m ?? 0), Number(row.elev_max_m ?? 800)],
+      slope_max_deg: Number(row.slope_max_deg ?? 25),
+      rain_mm: [Number(row.rain_min_mm ?? 1800), Number(row.rain_max_mm ?? 4200)],
+      soils: Array.isArray(row.soils) ? (row.soils as string[]).filter(Boolean) : ['Padsolik'],
+      kelas_ids: kelas_ids.length > 0 ? kelas_ids : [1, 2],
+      role,
+      co2_ton_per_ha_yr: toNullableNumber(row.co2_ton_per_ha_yr),
+      density_per_ha: toNullableNumber(row.density_per_ha),
+      default_survival: toNullableNumber(row.default_survival),
+      default_share: toNullableNumber(row.default_share),
+      carbon_source: row.carbon_source ? String(row.carbon_source) : null,
+    },
+  };
+}
+
+function toSpeciesDbRow(item: SpeciesCatalogItem) {
+  const s = item.suitability;
+  return {
+    id: item.id,
+    local_name: item.local_name.trim(),
+    scientific_name: item.scientific_name.trim(),
+    growth_form: item.growth_form,
+    role: s.role,
+    verification_status: item.verification_status,
+    elev_min_m: Number(s.elev_m[0]),
+    elev_max_m: Number(s.elev_m[1]),
+    slope_max_deg: Number(s.slope_max_deg),
+    rain_min_mm: Number(s.rain_mm[0]),
+    rain_max_mm: Number(s.rain_mm[1]),
+    soils: s.soils.map((x) => x.trim()).filter(Boolean),
+    kelas_ids: s.kelas_ids,
+    co2_ton_per_ha_yr: s.co2_ton_per_ha_yr,
+    density_per_ha: s.density_per_ha != null ? Math.round(s.density_per_ha) : null,
+    default_survival: s.default_survival,
+    default_share: s.default_share,
+    carbon_source: s.carbon_source?.trim() || null,
+    description: item.description.trim(),
+    traits: item.traits.map((t) => t.trim()).filter(Boolean),
+    updated_at: new Date().toISOString(),
   };
 }
 
@@ -168,11 +248,12 @@ export async function signOutSupabase(): Promise<void> {
 export async function fetchBackendSnapshot(realUser: User | null): Promise<BackendSnapshot | null> {
   if (!supabase || !isSupabaseConfigured) return null;
 
-  const [progRes, countRes, donRes, sessionRes] = await Promise.all([
+  const [progRes, countRes, donRes, sessionRes, speciesRes] = await Promise.all([
     supabase.from('programs').select('*'),
     supabase.rpc('get_nomination_counts'),
     supabase.from('donations').select('*').order('created_at', { ascending: false }),
     supabase.auth.getSession(),
+    supabase.from('species').select('*').order('local_name', { ascending: true }),
   ]);
 
   if (progRes.error) {
@@ -195,6 +276,12 @@ export async function fetchBackendSnapshot(realUser: User | null): Promise<Backe
   const donations: Donation[] = !donRes.error
     ? ((donRes.data ?? []) as Record<string, unknown>[]).map(mapDonationRow)
     : [];
+
+  // Graceful fallback if `public.species` migration has not been run in Supabase yet
+  const speciesTableReady = !speciesRes.error;
+  const species: SpeciesCatalogItem[] | null = speciesTableReady
+    ? ((speciesRes.data ?? []) as Record<string, unknown>[]).map(mapSpeciesRow)
+    : null;
 
   let userNominated: string[] = [];
   const activeAuthId = sessionRes.data.session?.user?.id;
@@ -219,7 +306,7 @@ export async function fetchBackendSnapshot(realUser: User | null): Promise<Backe
     }
   }
 
-  return { programs, donations, nominations, userNominated, savedProjectIds };
+  return { programs, donations, nominations, userNominated, savedProjectIds, species, speciesTableReady };
 }
 
 /** Ensures either a real user session or Supabase Anonymous Auth session exists for voting. */
@@ -338,6 +425,40 @@ export async function updateProfileRemote(
     .from('profiles')
     .update({ name: patch.name, phone: patch.phone, city: patch.city })
     .eq('id', userId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function upsertSpeciesRemote(item: SpeciesCatalogItem): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false, error: 'Supabase belum dikonfigurasi.' };
+  const { error } = await supabase
+    .from('species')
+    .upsert(toSpeciesDbRow(item), { onConflict: 'id' });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function upsertSpeciesBatchRemote(items: SpeciesCatalogItem[]): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false, error: 'Supabase belum dikonfigurasi.' };
+  if (items.length === 0) return { ok: true };
+  const { error } = await supabase
+    .from('species')
+    .upsert(items.map(toSpeciesDbRow), { onConflict: 'id' });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function deleteSpeciesRemote(id: string): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false, error: 'Supabase belum dikonfigurasi.' };
+  const { error } = await supabase.from('species').delete().eq('id', id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function deleteSpeciesBatchRemote(ids: string[]): Promise<{ ok: boolean; error?: string }> {
+  if (!supabase) return { ok: false, error: 'Supabase belum dikonfigurasi.' };
+  if (ids.length === 0) return { ok: true };
+  const { error } = await supabase.from('species').delete().in('id', ids);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
