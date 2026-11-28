@@ -2975,6 +2975,10 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+.admin-box__head > div {
+  display: grid;
+  gap: 3px;
+}
 .admin-species-list,
 .admin-costs {
   display: grid;
@@ -2988,8 +2992,8 @@
 }
 .admin-cost-row {
   display: grid;
-  grid-template-columns: 1fr 70px 1fr;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(210px, 280px);
+  gap: 12px;
   align-items: center;
   font-size: var(--fs-sm);
 }
